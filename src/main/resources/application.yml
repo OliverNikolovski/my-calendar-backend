@@ -1,0 +1,14 @@
+spring:
+  application:
+    name: my-calendar-backend
+  datasource:
+    username: postgres
+    password: postgres
+    url: jdbc:postgresql://localhost:5432/my_calendar
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    schemas: my_calendar
