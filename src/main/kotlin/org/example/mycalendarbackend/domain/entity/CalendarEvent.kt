@@ -24,9 +24,9 @@ data class CalendarEvent(
     @Column(name = "duration")
     val duration: Int,
 
-    @JoinColumn(name = "repeating_pattern_id")
-    @ManyToOne(fetch = FetchType.LAZY)
-    val repeatingPattern: RepeatingPattern,
+    @JoinColumn(name = "repeating_pattern_id", nullable = true)
+    @ManyToOne(fetch = FetchType.EAGER, cascade = [CascadeType.PERSIST])
+    val repeatingPattern: RepeatingPattern?,
 
     @JoinColumn(name = "parent_id")
     @ManyToOne(fetch = FetchType.LAZY)
@@ -34,7 +34,13 @@ data class CalendarEvent(
 
 ) : BaseEntity<Long>() {
 
-    @Formula("select parent_id from calendar.calendar_events e where e.id = id")
+    @Formula("(select parent_id from calendar.calendar_events e where e.id = id)")
     val parentId: Long? = null
+
+    val hasParent: Boolean
+        get() = parentId != null
+
+    val isRepeating: Boolean
+        get() = repeatingPattern != null
 
 }

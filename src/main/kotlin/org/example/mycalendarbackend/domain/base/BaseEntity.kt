@@ -29,8 +29,7 @@ abstract class BaseEntity<T : Serializable> : Serializable {
 
     @PreUpdate
     private fun onUpdate() {
-        val now = ZonedDateTime.now()
-        updatedAt = now
+        updatedAt = ZonedDateTime.now()
     }
 
     override fun equals(other: Any?): Boolean {
