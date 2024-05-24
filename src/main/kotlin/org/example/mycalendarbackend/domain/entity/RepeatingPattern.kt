@@ -3,15 +3,10 @@ package org.example.mycalendarbackend.domain.entity
 import io.hypersistence.utils.hibernate.type.array.IntArrayType
 import jakarta.persistence.*
 import org.example.mycalendarbackend.domain.base.BaseEntity
+import org.example.mycalendarbackend.domain.enums.Frequency
 import org.hibernate.annotations.Type
 import java.time.ZonedDateTime
 
-enum class Frequency {
-    YEARLY,
-    MONTHLY,
-    WEEKLY,
-    DAILY
-}
 
 @Entity
 @Table(schema = "calendar", name = "repeating_patterns")

@@ -38,3 +38,11 @@ out/
 
 ### Kotlin ###
 .kotlin
+
+node_modules
+dist
+tmp
+out-tsc
+bazel-out
+npm-debug.log
+yarn-error.log

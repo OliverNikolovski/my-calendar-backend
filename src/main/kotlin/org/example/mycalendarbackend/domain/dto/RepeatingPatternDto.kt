@@ -1,6 +1,6 @@
 package org.example.mycalendarbackend.domain.dto
 
-import org.example.mycalendarbackend.domain.entity.Frequency
+import org.example.mycalendarbackend.domain.enums.Frequency
 import java.time.ZonedDateTime
 
 data class RepeatingPatternDto(

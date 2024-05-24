@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
+import java.time.ZonedDateTime
 
 @RestController
 @RequestMapping("/api/calendar-events")
@@ -22,6 +23,10 @@ class CalendarEventsController(
 
     @GetMapping("/{id}")
     fun getEventAndChildren(@PathVariable("id") eventId: Long) = service.getCalendarEventWithChildren(eventId)
+
+    @GetMapping("/generate-event-instances/{id}")
+    fun getEventInstances(@PathVariable("id") eventId: Long): List<ZonedDateTime> =
+        service.generateCalendarEventInstances(eventId)
 
     @PostMapping
     fun create(@RequestBody calendarEventDto: CalendarEventDto) = service.save(calendarEventDto)

@@ -1,0 +1,21 @@
+{
+  "name": "rruleservice",
+  "version": "1.0.0",
+  "description": "Microservice that generates event instances from an RRule",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "tsc && node ./dist/app.js"
+  },
+  "author": "oliver.nikolovski",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.12.12",
+    "typescript": "^5.4.5"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "rrule": "^2.8.1"
+  }
+}
