@@ -4,8 +4,8 @@ import org.example.mycalendarbackend.domain.enums.Frequency
 import java.time.ZonedDateTime
 
 data class RRuleRequest(
-    val start: ZonedDateTime,
-    val end: ZonedDateTime? = null,
+    val start: DateTime,
+    val end: DateTime? = null,
     val freq: Frequency? = Frequency.DAILY,
     val count: Int? = null,
     val byWeekDay: Array<Int>? = null,

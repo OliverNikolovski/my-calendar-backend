@@ -43,4 +43,7 @@ data class CalendarEvent(
     val isRepeating: Boolean
         get() = repeatingPattern != null
 
+    val isNonRepeating: Boolean
+        get() = !isRepeating
+
 }
