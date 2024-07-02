@@ -33,6 +33,8 @@ class CalendarEventsController(
         }
     }
 
+
+    // ovoj go koristam
     @GetMapping("/generate-instances-for-events")
     fun generateInstancesForEvents(@RequestParam
                                    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)

@@ -103,7 +103,7 @@ class CalendarEventService internal constructor(
 
         // Process the response and map to CalendarEventInstanceInfo
         val eventInstances = events.zip(response) { event, dates ->
-            dates.map { CalendarEventInstanceInfo(event.id!!, it, event.duration) }
+            dates.map { CalendarEventInstanceInfo(event.id!!, it, event.duration, event.toDto()) }
         }
 
         // Group by date string
@@ -116,6 +116,17 @@ class CalendarEventService internal constructor(
         val parent = calendarEventDto.parentId?.let {
             repository.getReferenceById(it)
         }
+        var dto: CalendarEventDto? = null
+        if (calendarEventDto.repeatingPattern != null) {
+            val result = restClient.post()
+                .uri("/get-rrule-text-and-string")
+                .contentType(APPLICATION_JSON)
+                .accept(APPLICATION_JSON)
+                .body(calendarEventDto.repeatingPattern)
+                .retrieve()
+                .body(RRuleTextAndString::class.java)!!
+            dto = calendarEventDto.copy()
+        }
         return repository.save(calendarEventDto.toEntity(parent)).id!!
     }
 
@@ -126,5 +137,11 @@ class CalendarEventService internal constructor(
 data class CalendarEventInstanceInfo(
     val eventId: Long,
     val date: ZonedDateTime,
-    val duration: Int
+    val duration: Int,
+    val event: CalendarEventDto
+)
+
+data class RRuleTextAndString(
+    val rruleText: String,
+    val rruleString: String
 )

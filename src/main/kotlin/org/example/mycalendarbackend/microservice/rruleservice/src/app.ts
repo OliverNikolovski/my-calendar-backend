@@ -27,11 +27,19 @@ interface RRuleRequest {
 }
 
 app.post('/generate-event-instances', (req, res) => {
-    console.log('body:',req.body);
     const rruleRequests = req.body as RRuleRequest[];
     const rrules = rruleRequests.map(req => createRRuleFromRequest(req));
     const dates = rrules.map(rrule => rrule.all())
     res.send(dates);
+});
+
+app.post('/get-rrule-text-and-string', (req, res) => {
+    const rruleRequest = req.body as RRuleRequest;
+    const rrule = createRRuleFromRequest(rruleRequest);
+    res.send({
+        rruleText: rrule.toText(),
+        rruleString: rrule.toString()
+    });
 });
 
 // app.post('/generate-event-instances', (req, res) => {
