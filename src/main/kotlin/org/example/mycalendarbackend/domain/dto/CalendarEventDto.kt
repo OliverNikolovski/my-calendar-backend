@@ -9,9 +9,9 @@ data class CalendarEventDto(
 
     val description: String?,
 
-    val startDate: ZonedDateTime,
+    val isRepeating: Boolean,
 
-    val endDate: ZonedDateTime?,
+    val startDate: ZonedDateTime,
 
     val duration: Int,
 

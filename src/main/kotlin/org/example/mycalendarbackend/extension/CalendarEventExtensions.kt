@@ -5,11 +5,23 @@ import org.example.mycalendarbackend.domain.dto.RRuleRequest
 import org.example.mycalendarbackend.domain.entity.CalendarEvent
 
 fun CalendarEvent.toDto(): CalendarEventDto = CalendarEventDto(
-    id, title, description, startDate, endDate, duration, repeatingPattern?.toDto(), parentId
+    id = id,
+    title = title,
+    description = description,
+    isRepeating = isRepeating,
+    startDate = startDate,
+    duration = duration,
+    repeatingPattern = repeatingPattern?.toDto(),
+    parentId = parentId
 )
 
 fun CalendarEventDto.toEntity(parent: CalendarEvent?): CalendarEvent = CalendarEvent(
-    title, description, startDate, endDate, duration, repeatingPattern?.toEntity(), parent
+    title = title,
+    description = description,
+    startDate = startDate,
+    duration = duration,
+    repeatingPattern = repeatingPattern?.toEntity(startDate),
+    parent = parent
 ).also { it.id = id }
 
 fun CalendarEvent.toRRuleRequest(): RRuleRequest =
@@ -21,8 +33,8 @@ fun CalendarEvent.toRRuleRequest(): RRuleRequest =
     } else {
         RRuleRequest(
             start = startDate.toDateTime(),
-            end = endDate?.toDateTime(),
-            freq = repeatingPattern!!.frequency,
+            end = repeatingPattern!!.until?.toDateTime(),
+            freq = repeatingPattern.frequency,
             count = repeatingPattern.occurrenceCount,
             byWeekDay = repeatingPattern.weekDays,
             bySetPos = repeatingPattern.setPos,
@@ -30,3 +42,20 @@ fun CalendarEvent.toRRuleRequest(): RRuleRequest =
         )
     }
 
+fun CalendarEventDto.toRRuleRequest(): RRuleRequest =
+    if (repeatingPattern == null) {
+        RRuleRequest(
+            start = startDate.toDateTime(),
+            count = 1
+        )
+    } else {
+        RRuleRequest(
+            start = startDate.toDateTime(),
+            end = repeatingPattern.endDate?.toDateTime(),
+            freq = repeatingPattern.frequency,
+            count = repeatingPattern.occurrenceCount,
+            byWeekDay = repeatingPattern.weekDays,
+            bySetPos = repeatingPattern.setPos,
+            interval = repeatingPattern.interval
+        )
+    }

@@ -7,6 +7,15 @@ const port = 3000;
 
 app.use(bodyParser.json());
 
+const defaultDateTime: DateTime = {
+    year: (new Date()).getFullYear() + 2,
+    month: 1,
+    day: 1,
+    hour: 0,
+    minute: 0,
+    second: 0
+}
+
 interface DateTime {
     year: number;
     month: number;
@@ -63,9 +72,9 @@ app.listen(port, () => {
 function createRRuleFromRequest(request: RRuleRequest): RRule {
     return new RRule({
         dtstart: datetime(...dateTimeValues(request.start)),
-        until: request.end ? datetime(...dateTimeValues(request.end)) : null,
+        until: request.end ? datetime(...dateTimeValues(request.end)) : datetime(...dateTimeValues(defaultDateTime)),
         freq: Frequency[request.freq as keyof typeof Frequency],
-        count: request.count ?? 20,
+        count: request.count,
         byweekday: request.byWeekDay,
         bysetpos: request.bySetPos,
         interval: request.interval ?? 1

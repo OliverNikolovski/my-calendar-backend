@@ -10,8 +10,6 @@ internal class RepeatingPatternService(
     private val repository: RepeatingPatternRepository
 ) {
 
-    fun save(repeatingPatternDto: RepeatingPatternDto) = repository.save(repeatingPatternDto.toEntity()).id
-
     fun delete(id: Long) = repository.deleteById(id)
 
 }

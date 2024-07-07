@@ -18,9 +18,6 @@ data class CalendarEvent(
     @Column(name = "start_date")
     val startDate: ZonedDateTime,
 
-    @Column(name = "end_date")
-    val endDate: ZonedDateTime?,
-
     @Column(name = "duration")
     val duration: Int,
 

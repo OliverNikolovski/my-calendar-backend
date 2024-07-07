@@ -20,7 +20,5 @@ data class RepeatingPatternDto(
 
     val rruleString: String?,
 
-    val start: ZonedDateTime?,
-
-    val until: ZonedDateTime?
+    val endDate: ZonedDateTime?
 )

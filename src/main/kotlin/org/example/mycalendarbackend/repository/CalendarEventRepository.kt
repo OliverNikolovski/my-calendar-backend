@@ -13,8 +13,6 @@ internal interface CalendarEventRepository : JpaRepository<CalendarEvent, Long>,
 
     fun findAllByIdOrParentId(id: Long, parentId: Long): List<CalendarEvent>
 
-    fun findAllByStartDateGreaterThanEqualOrEndDateLessThanEqual(from: ZonedDateTime, to: ZonedDateTime): List<CalendarEvent>
-
     fun findAllByStartDateGreaterThanEqual(from: ZonedDateTime): List<CalendarEvent>
 
 }

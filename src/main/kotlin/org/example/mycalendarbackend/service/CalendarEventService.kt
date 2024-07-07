@@ -34,8 +34,8 @@ class CalendarEventService internal constructor(
         val request = with(event) {
             RRuleRequest(
                 start = startDate.toDateTime(),
-                end = endDate?.toDateTime(),
-                freq = repeatingPattern!!.frequency,
+                end = repeatingPattern!!.until?.toDateTime(),
+                freq = repeatingPattern.frequency,
                 count = repeatingPattern.occurrenceCount,
                 byWeekDay = repeatingPattern.weekDays,
                 bySetPos = repeatingPattern.setPos,
@@ -116,18 +116,23 @@ class CalendarEventService internal constructor(
         val parent = calendarEventDto.parentId?.let {
             repository.getReferenceById(it)
         }
-        var dto: CalendarEventDto? = null
-        if (calendarEventDto.repeatingPattern != null) {
+        var dto = calendarEventDto
+        if (calendarEventDto.isRepeating) {
             val result = restClient.post()
                 .uri("/get-rrule-text-and-string")
                 .contentType(APPLICATION_JSON)
                 .accept(APPLICATION_JSON)
-                .body(calendarEventDto.repeatingPattern)
+                .body(calendarEventDto.toRRuleRequest())
                 .retrieve()
                 .body(RRuleTextAndString::class.java)!!
-            dto = calendarEventDto.copy()
+            dto = calendarEventDto.copy(
+                repeatingPattern = calendarEventDto.repeatingPattern!!.copy(
+                    rruleText = result.rruleText,
+                    rruleString = result.rruleString
+                )
+            )
         }
-        return repository.save(calendarEventDto.toEntity(parent)).id!!
+        return repository.save(dto.toEntity(parent)).id!!
     }
 
     fun delete(id: Long) = repository.deleteById(id)
