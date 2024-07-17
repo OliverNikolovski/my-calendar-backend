@@ -1,13 +1,8 @@
 package org.example.mycalendarbackend.extension
 
-import org.example.mycalendarbackend.domain.dto.DateTime
-import java.time.ZonedDateTime
+import org.example.mycalendarbackend.domain.base.BaseEntity
 
-fun ZonedDateTime.toDateTime(): DateTime = DateTime(
-    year = year,
-    month = monthValue,
-    day = dayOfMonth,
-    hour = hour,
-    minute = minute,
-    second = second
-)
+fun <ID, T : BaseEntity<ID>> T.withBase(o: T): T {
+    this.id = o.id
+    return this
+}

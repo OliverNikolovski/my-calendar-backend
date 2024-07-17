@@ -2,10 +2,8 @@ package org.example.mycalendarbackend.service
 
 import jakarta.transaction.Transactional
 import org.example.mycalendarbackend.domain.dto.*
-import org.example.mycalendarbackend.extension.toDateTime
-import org.example.mycalendarbackend.extension.toDto
-import org.example.mycalendarbackend.extension.toEntity
-import org.example.mycalendarbackend.extension.toRRuleRequest
+import org.example.mycalendarbackend.domain.enums.DeletionType
+import org.example.mycalendarbackend.extension.*
 import org.example.mycalendarbackend.repository.CalendarEventRepository
 import org.springframework.core.ParameterizedTypeReference
 import org.springframework.data.crossstore.ChangeSetPersister.NotFoundException
@@ -18,7 +16,8 @@ import java.time.ZonedDateTime
 @Service
 class CalendarEventService internal constructor(
     private val repository: CalendarEventRepository,
-    private val restClient: RestClient
+    private val restClient: RestClient,
+    private val repeatingPatternService: RepeatingPatternService
 ) {
 
     fun getCalendarEventWithChildren(eventId: Long): List<CalendarEventDto> =
@@ -135,7 +134,33 @@ class CalendarEventService internal constructor(
         return repository.save(dto.toEntity(parent)).id!!
     }
 
-    fun delete(id: Long) = repository.deleteById(id)
+    @Transactional
+    fun delete(id: Long, fromDate: ZonedDateTime, deletionType: DeletionType) = when (deletionType) {
+        DeletionType.THIS_EVENT -> deleteThisInstance(id, fromDate)
+        DeletionType.THIS_AND_ALL_FOLLOWING_EVENTS -> deleteThisAndAllFollowintInstances(id, fromDate)
+        DeletionType.ALL_EVENTS -> deleteAllInstances(id, fromDate)
+    }
+
+    private fun deleteThisInstance(id: Long, fromDate: ZonedDateTime) {
+        val event = repository.findById(id).orElseThrow()
+        if (event.isNonRepeating) {
+            repository.delete(event)
+            return
+        }
+        val newRepeatingPatternForExistingEvent = event.repeatingPattern!!.copy(until = fromDate.endOfPreviousDay())
+        val repeatingPatternForNewEvent = event.repeatingPattern.copy(start = nextExecution)
+        val newEvent = event.copy(startDate = nextExecution, repeatingPattern = repeatingPatternForNewEvent)
+        save(event.copy(repeatingPattern = newRepeatingPatternForExistingEvent).withBase(event).toDto()) // save existing event
+        save(newEvent.toDto())
+    }
+
+    private fun deleteThisAndAllFollowintInstances(id: Long, fromDate: ZonedDateTime) {
+
+    }
+
+    private fun deleteAllInstances(id: Long, fromDate: ZonedDateTime) {
+
+    }
 
 }
 

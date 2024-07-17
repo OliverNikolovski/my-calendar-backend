@@ -4,6 +4,7 @@ import org.example.mycalendarbackend.api.request.DateRange
 import org.example.mycalendarbackend.domain.dto.CalendarEventDto
 import org.example.mycalendarbackend.domain.dto.CalendarEventInstancesContainer
 import org.example.mycalendarbackend.domain.dto.CalendarEventInstancesContainer2
+import org.example.mycalendarbackend.domain.enums.DeletionType
 import org.example.mycalendarbackend.service.CalendarEventInstanceInfo
 import org.example.mycalendarbackend.service.CalendarEventService
 import org.springframework.format.annotation.DateTimeFormat
@@ -50,6 +51,9 @@ class CalendarEventsController(
     fun create(@RequestBody calendarEventDto: CalendarEventDto) = service.save(calendarEventDto)
 
     @DeleteMapping("/{id}")
-    fun delete(@PathVariable id: Long) = service.delete(id)
+    fun delete(@PathVariable id: Long,
+               @RequestParam deletionType: DeletionType,
+               @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) fromDate: ZonedDateTime) =
+        service.delete(id, fromDate, deletionType)
 
 }

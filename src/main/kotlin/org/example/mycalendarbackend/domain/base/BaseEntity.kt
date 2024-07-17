@@ -32,6 +32,10 @@ abstract class BaseEntity<T : Serializable> : Serializable {
         updatedAt = ZonedDateTime.now()
     }
 
+    private fun setCreatedAt(date: ZonedDateTime) {
+        this.createdAt = date
+    }
+
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
