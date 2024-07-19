@@ -145,23 +145,41 @@ class CalendarEventService internal constructor(
         val event = repository.findById(id).orElseThrow()
         if (event.isNonRepeating) {
             repository.delete(event)
-            return
         }
-        val newRepeatingPatternForExistingEvent = event.repeatingPattern!!.copy(until = fromDate.endOfPreviousDay())
-        val repeatingPatternForNewEvent = event.repeatingPattern.copy(start = nextExecution)
-        val newEvent = event.copy(startDate = nextExecution, repeatingPattern = repeatingPatternForNewEvent)
-        save(event.copy(repeatingPattern = newRepeatingPatternForExistingEvent).withBase(event).toDto()) // save existing event
-        save(newEvent.toDto())
+        val (previousOccurrence, nextOccurrence) = restClient.post()
+            .uri("/calculate-previos-next-execution")
+            .contentType(APPLICATION_JSON)
+            .body(
+                mapOf(
+                    "rruleRequest" to event.toRRuleRequest(),
+                    "date" to fromDate.toString()
+                )
+            ).retrieve()
+            .body(object : ParameterizedTypeReference<Pair<ZonedDateTime?, ZonedDateTime?>>() {})!!
+        val newRepeatingPatternForExistingEvent = event.repeatingPattern!!.copy(until = previousOccurrence)
+        repeatingPatternService.save(newRepeatingPatternForExistingEvent)
+        nextOccurrence?.let {
+            val repeatingPatternForNewEvent = event.repeatingPattern.copy(start = nextOccurrence)
+            val newEvent = event.copy(
+                startDate = nextOccurrence,
+                repeatingPattern = repeatingPatternForNewEvent,
+                parent = event
+            )
+            save(newEvent.toDto()) // save new event
+        }
+        save(
+            event.copy(repeatingPattern = newRepeatingPatternForExistingEvent).withBase(event).toDto()
+        ) // save existing event
+        println("done")
     }
 
     private fun deleteThisAndAllFollowintInstances(id: Long, fromDate: ZonedDateTime) {
-
+        //TODO
     }
 
     private fun deleteAllInstances(id: Long, fromDate: ZonedDateTime) {
-
+        //TODO
     }
-
 }
 
 data class CalendarEventInstanceInfo(

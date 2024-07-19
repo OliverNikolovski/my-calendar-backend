@@ -51,6 +51,16 @@ app.post('/get-rrule-text-and-string', (req, res) => {
     });
 });
 
+app.post('/calculate-next-execution', (req, res) => {
+    const rruleRequest = req.body.rruleRequest as RRuleRequest;
+    const date = new Date(req.body.date as string);
+    const rrule = createRRuleFromRequest(rruleRequest);
+    res.send({
+        previousOccurrence: rrule.before(date),
+        nextOccurrence: rrule.after(date)
+    });
+});
+
 // app.post('/generate-event-instances', (req, res) => {
 //     console.log('body:',req.body);
 //     const rruleRequests = req.body as RRuleRequest[];
