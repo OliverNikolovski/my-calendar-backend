@@ -12,7 +12,7 @@ fun CalendarEvent.toDto(): CalendarEventDto = CalendarEventDto(
     startDate = startDate,
     duration = duration,
     repeatingPattern = repeatingPattern?.toDto(),
-    parentId = parentId
+    parentId = parent?.id
 )
 
 fun CalendarEventDto.toEntity(parent: CalendarEvent?): CalendarEvent = CalendarEvent(

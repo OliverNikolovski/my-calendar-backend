@@ -38,7 +38,14 @@ interface RRuleRequest {
 app.post('/generate-event-instances', (req, res) => {
     const rruleRequests = req.body as RRuleRequest[];
     const rrules = rruleRequests.map(req => createRRuleFromRequest(req));
-    const dates = rrules.map(rrule => rrule.all())
+    const dates = rrules.map(rrule => rrule.all());
+    res.send(dates);
+});
+
+app.post('/generate-event-instances-for-event', (req, res) => {
+    const rruleRequest = req.body as RRuleRequest;
+    const rrule = createRRuleFromRequest(rruleRequest);
+    const dates = rrule.all();
     res.send(dates);
 });
 
@@ -51,23 +58,17 @@ app.post('/get-rrule-text-and-string', (req, res) => {
     });
 });
 
-app.post('/calculate-next-execution', (req, res) => {
+app.post('/calculate-previous-next-execution', (req, res) => {
     const rruleRequest = req.body.rruleRequest as RRuleRequest;
     const date = new Date(req.body.date as string);
     const rrule = createRRuleFromRequest(rruleRequest);
-    res.send({
+    const response = {
         previousOccurrence: rrule.before(date),
         nextOccurrence: rrule.after(date)
-    });
+    }
+    console.log('response', response);
+    res.send(response);
 });
-
-// app.post('/generate-event-instances', (req, res) => {
-//     console.log('body:',req.body);
-//     const rruleRequests = req.body as RRuleRequest[];
-//     const rrules = rruleRequests.map(req => createRRuleFromRequest(req));
-//     const dates = rrules.flatMap(rrule => rrule.all())
-//     res.send(dates);
-// });
 
 app.post('/generate-instances-for-events', (req, res) => {
     console.log('body:',req.body);

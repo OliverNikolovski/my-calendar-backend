@@ -13,6 +13,8 @@ internal class RepeatingPatternService(
 
     fun delete(id: Long) = repository.deleteById(id)
 
+    fun delete(repeatingPattern: RepeatingPattern) = repository.delete(repeatingPattern)
+
     fun save(repeatingPattern: RepeatingPattern) = repository.save(repeatingPattern)
 
 }
