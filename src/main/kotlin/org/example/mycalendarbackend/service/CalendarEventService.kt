@@ -31,7 +31,9 @@ class CalendarEventService internal constructor(
 
         // Process the response and map to CalendarEventInstanceInfo
         val eventInstances = events.zip(response) { event, dates ->
-            dates.map { CalendarEventInstanceInfo(event.id!!, it, event.duration, event.toDto()) }
+            dates.mapIndexed { index, date ->
+                CalendarEventInstanceInfo(event.id!!, date, event.duration, event.toDto(), index)
+            }
         }
 
         // Group by date string
@@ -39,6 +41,7 @@ class CalendarEventService internal constructor(
             .groupBy { it.date.toLocalDate().toString() }
     }
 
+    // this is used only after event creation, to get the instances of the created event
     fun generateInstancesForEvent(eventId: Long): Map<String, List<CalendarEventInstanceInfo>> {
         val event = repository.findById(eventId).orElseThrow()
         val request = event.toRRuleRequest()
@@ -48,13 +51,14 @@ class CalendarEventService internal constructor(
             .body(request)
             .retrieve()
             .body(object : ParameterizedTypeReference<List<ZonedDateTime>>() {})!!
-        val result = instances.associate { instance ->
-            instance.toLocalDate().toString() to listOf(
+        val result = instances.withIndex().associate { instance ->
+            instance.value.toLocalDate().toString() to listOf(
                 CalendarEventInstanceInfo(
                     eventId = eventId,
-                    date = instance,
+                    date = instance.value,
                     duration = event.duration,
-                    event = event.toDto()
+                    event = event.toDto(),
+                    order = instance.index
                 )
             )
         }
@@ -86,13 +90,13 @@ class CalendarEventService internal constructor(
     }
 
     @Transactional
-    fun delete(id: Long, fromDate: ZonedDateTime, deletionType: DeletionType) = when (deletionType) {
-        DeletionType.THIS_EVENT -> deleteThisInstance(id, fromDate)
+    fun delete(id: Long, fromDate: ZonedDateTime, deletionType: DeletionType, order: Int): Map<String, List<CalendarEventInstanceInfo>> = when (deletionType) {
+        DeletionType.THIS_EVENT -> deleteThisInstance(id, fromDate, order)
         DeletionType.THIS_AND_ALL_FOLLOWING_EVENTS -> deleteThisAndAllFollowintInstances(id, fromDate)
         DeletionType.ALL_EVENTS -> deleteAllInstances(id, fromDate)
     }
 
-    private fun deleteThisInstance(id: Long, fromDate: ZonedDateTime) {
+    private fun deleteThisInstance(id: Long, fromDate: ZonedDateTime, order: Int): Map<String, List<CalendarEventInstanceInfo>> {
         val event = repository.findById(id).orElseThrow()
         if (event.isNonRepeating) {
             repository.delete(event)
@@ -110,12 +114,16 @@ class CalendarEventService internal constructor(
         val newRepeatingPatternForExistingEvent =
             event.repeatingPattern!!.copy(until = previousOccurrence?.plusMinutes(event.duration.toLong()))
         repeatingPatternService.save(newRepeatingPatternForExistingEvent)
-        nextOccurrence?.let {
-            val repeatingPatternForNewEvent = event.repeatingPattern.copy(start = it)
+        nextOccurrence?.let { it ->
+            val occurrenceCount = event.repeatingPattern.occurrenceCount?.let { it - order - 1 }
+            val repeatingPatternForNewEvent = event.repeatingPattern.copy(
+                start = it,
+                occurrenceCount = occurrenceCount
+            )
             val newEvent = event.copy(
                 startDate = it,
                 repeatingPattern = repeatingPatternForNewEvent,
-                parent = event
+                parent = event,
             )
             save(newEvent.toDto()) // save new event
         }
@@ -126,11 +134,11 @@ class CalendarEventService internal constructor(
         repeatingPatternService.delete(oldRepeatingPattern)
     }
 
-    private fun deleteThisAndAllFollowintInstances(id: Long, fromDate: ZonedDateTime) {
+    private fun deleteThisAndAllFollowintInstances(id: Long, fromDate: ZonedDateTime): Map<String, List<CalendarEventInstanceInfo>> {
         //TODO
     }
 
-    private fun deleteAllInstances(id: Long, fromDate: ZonedDateTime) {
+    private fun deleteAllInstances(id: Long, fromDate: ZonedDateTime): Map<String, List<CalendarEventInstanceInfo>> {
         //TODO
     }
 
@@ -144,7 +152,8 @@ data class CalendarEventInstanceInfo(
     val eventId: Long,
     val date: ZonedDateTime,
     val duration: Int,
-    val event: CalendarEventDto
+    val event: CalendarEventDto,
+    val order: Int
 )
 
 data class RRuleTextAndString(

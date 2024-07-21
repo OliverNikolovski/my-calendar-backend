@@ -7,8 +7,3 @@ data class CalendarEventInstancesContainer(
     val duration: Int,
     val calendarEventInstances: List<ZonedDateTime>
 )
-
-data class CalendarEventInstancesContainer2(
-    val duration: Int,
-    val calendarEventInstances: List<ZonedDateTime>
-)

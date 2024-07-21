@@ -21,7 +21,8 @@ class CalendarEventsController(
         service.generateInstanceForEvents(from)
 
     @GetMapping("/generate-instances-for-event-id")
-    fun generateInstancesForEventId(@RequestParam eventId: Long) = service.generateInstancesForEvent(eventId)
+    fun generateInstancesForEventId(@RequestParam eventId: Long): Map<String, List<CalendarEventInstanceInfo>> =
+        service.generateInstancesForEvent(eventId)
 
     @PostMapping
     fun create(@RequestBody calendarEventDto: CalendarEventDto) = service.save(calendarEventDto)
@@ -29,7 +30,8 @@ class CalendarEventsController(
     @DeleteMapping("/{id}")
     fun delete(@PathVariable id: Long,
                @RequestParam deletionType: DeletionType,
-               @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) fromDate: ZonedDateTime) =
-        service.delete(id, fromDate, deletionType)
+               @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) fromDate: ZonedDateTime,
+               @RequestParam order: Int) =
+        service.delete(id, fromDate, deletionType, order)
 
 }
