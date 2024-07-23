@@ -90,13 +90,13 @@ class CalendarEventService internal constructor(
     }
 
     @Transactional
-    fun delete(id: Long, fromDate: ZonedDateTime, deletionType: DeletionType, order: Int): Map<String, List<CalendarEventInstanceInfo>> = when (deletionType) {
+    fun delete(id: Long, fromDate: ZonedDateTime, deletionType: DeletionType, order: Int) = when (deletionType) {
         DeletionType.THIS_EVENT -> deleteThisInstance(id, fromDate, order)
         DeletionType.THIS_AND_ALL_FOLLOWING_EVENTS -> deleteThisAndAllFollowintInstances(id, fromDate)
         DeletionType.ALL_EVENTS -> deleteAllInstances(id, fromDate)
     }
 
-    private fun deleteThisInstance(id: Long, fromDate: ZonedDateTime, order: Int): Map<String, List<CalendarEventInstanceInfo>> {
+    private fun deleteThisInstance(id: Long, fromDate: ZonedDateTime, order: Int) {
         val event = repository.findById(id).orElseThrow()
         if (event.isNonRepeating) {
             repository.delete(event)
@@ -134,11 +134,11 @@ class CalendarEventService internal constructor(
         repeatingPatternService.delete(oldRepeatingPattern)
     }
 
-    private fun deleteThisAndAllFollowintInstances(id: Long, fromDate: ZonedDateTime): Map<String, List<CalendarEventInstanceInfo>> {
+    private fun deleteThisAndAllFollowintInstances(id: Long, fromDate: ZonedDateTime) {
         //TODO
     }
 
-    private fun deleteAllInstances(id: Long, fromDate: ZonedDateTime): Map<String, List<CalendarEventInstanceInfo>> {
+    private fun deleteAllInstances(id: Long, fromDate: ZonedDateTime) {
         //TODO
     }
 
