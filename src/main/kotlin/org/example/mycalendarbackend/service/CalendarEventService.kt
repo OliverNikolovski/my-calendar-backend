@@ -1,20 +1,23 @@
 package org.example.mycalendarbackend.service
 
 import jakarta.transaction.Transactional
+import org.example.mycalendarbackend.api.request.CalendarEventCreationRequest
+import org.example.mycalendarbackend.api.request.CalendarEventUpdateRequest
 import org.example.mycalendarbackend.domain.dto.*
 import org.example.mycalendarbackend.domain.entity.CalendarEvent
-import org.example.mycalendarbackend.domain.enums.DeletionType
+import org.example.mycalendarbackend.domain.enums.ActionType
 import org.example.mycalendarbackend.extension.*
 import org.example.mycalendarbackend.repository.CalendarEventRepository
 import org.springframework.core.ParameterizedTypeReference
 import org.springframework.http.MediaType.*
 import org.springframework.stereotype.Service
 import org.springframework.web.client.RestClient
+import java.time.LocalTime
 import java.time.ZonedDateTime
 import java.util.*
 
 @Service
-class CalendarEventService internal constructor(
+internal class CalendarEventService(
     private val repository: CalendarEventRepository,
     private val restClient: RestClient,
     private val repeatingPatternService: RepeatingPatternService
@@ -68,42 +71,142 @@ class CalendarEventService internal constructor(
     }
 
     @Transactional
-    fun save(calendarEventDto: CalendarEventDto): Long {
-        var dto = calendarEventDto
-        if (calendarEventDto.isRepeating) {
-            val result = restClient.post()
+    fun save(request: CalendarEventCreationRequest): Long = save(request.toEntity(UUID.randomUUID().toString()))
+
+    fun save(calendarEvent: CalendarEvent): Long {
+        val (rruleText, rruleString) = if (calendarEvent.isRepeating) {
+            restClient.post()
                 .uri("/get-rrule-text-and-string")
                 .contentType(APPLICATION_JSON)
                 .accept(APPLICATION_JSON)
-                .body(calendarEventDto.toRRuleRequest())
+                .body(calendarEvent.toRRuleRequest())
                 .retrieve()
                 .body(RRuleTextAndString::class.java)!!
-            dto = calendarEventDto.copy(
-                repeatingPattern = calendarEventDto.repeatingPattern!!.copy(
-                    rruleText = result.rruleText,
-                    rruleString = result.rruleString
-                )
-            )
+        } else {
+            RRuleTextAndString(null, null)
         }
-        return repository.save(dto.toEntity(UUID.randomUUID().toString())).id!!
+        val repeatingPattern = calendarEvent.repeatingPattern?.let {
+            it.copy(rruleText = rruleText, rruleString = rruleString).withBase(it)
+        }
+        return repository.save(calendarEvent.copy(repeatingPattern = repeatingPattern).withBase(calendarEvent)).id!!
     }
 
     @Transactional
-    fun delete(id: Long, fromDate: ZonedDateTime, deletionType: DeletionType, order: Int) = when (deletionType) {
-        DeletionType.THIS_EVENT -> deleteThisInstance(id, fromDate, order)
-        DeletionType.THIS_AND_ALL_FOLLOWING_EVENTS -> deleteThisAndAllFollowintInstances(id, fromDate)
-        DeletionType.ALL_EVENTS -> deleteAllInstances(id)
-    }
-
-    private fun deleteThisInstance(id: Long, fromDate: ZonedDateTime, order: Int) {
+    fun delete(id: Long, fromDate: ZonedDateTime, actionType: ActionType, order: Int) {
         val event = repository.findById(id).orElseThrow()
         if (event.isNonRepeating) {
             repository.delete(event)
             return
         }
-        val (previousOccurrence, nextOccurrence) = restClient.post()
+        when (actionType) {
+            ActionType.THIS_EVENT -> deleteThisInstance(event, fromDate, order)
+            ActionType.THIS_AND_ALL_FOLLOWING_EVENTS -> deleteThisAndAllFollowingInstances(event, fromDate)
+            ActionType.ALL_EVENTS -> deleteAllInstances(event)
+        }
+    }
+
+    fun update(id: Long, updateRequest: CalendarEventUpdateRequest) {
+        val event = repository.findById(id).orElseThrow()
+        if (event.isNonRepeating) {
+            // TODO: Update
+            return
+        }
+        when (updateRequest.actionType) {
+            ActionType.THIS_EVENT -> updateSingleInstance(
+                event = event,
+                date = updateRequest.fromDate,
+                newStartTime = updateRequest.newStartTime,
+                newDuration = updateRequest.newDuration
+            )
+            ActionType.THIS_AND_ALL_FOLLOWING_EVENTS -> updateThisAndAllFollowingInstances()
+            ActionType.ALL_EVENTS -> updateAllInstances()
+        }
+    }
+
+    private fun deleteThisInstance(event: CalendarEvent, fromDate: ZonedDateTime, order: Int) {
+        val (previousOccurrence, nextOccurrence) = getPreviousAndNextOccurrence(event, fromDate)
+//        repeatingPatternService.save(newRepeatingPatternForExistingEvent)
+        nextOccurrence?.let { it ->
+            val occurrenceCount = event.repeatingPattern!!.occurrenceCount?.let { it - order - 1 }
+            val repeatingPatternForNewEvent = event.repeatingPattern.copy(
+                start = it,
+                occurrenceCount = occurrenceCount
+            )
+            val newEvent = event.copy(
+                startDate = it,
+                repeatingPattern = repeatingPatternForNewEvent
+            )
+            save(newEvent) // save new event
+        }
+        if (previousOccurrence == null) {
+            repository.delete(event)
+        } else {
+            val updatedRepeatingPattern =
+                event.repeatingPattern!!.copy(until = previousOccurrence.plusMinutes(event.duration.toLong())).withBase(event.repeatingPattern)
+            //TODO: Check if this is needed
+            save(
+                event.copy(repeatingPattern = updatedRepeatingPattern).withBase(event)
+            ) // save existing event
+        }
+    }
+
+    private fun deleteThisAndAllFollowingInstances(event: CalendarEvent, fromDate: ZonedDateTime) {
+        val otherEventsInSequence = repository.findAllBySequenceIdAndStartDateGreaterThanEqual(event.sequenceId, fromDate)
+            .filter { it.id != event.id }
+        repository.deleteAll(otherEventsInSequence)
+        val newRepeatingPattern = event.repeatingPattern!!.copy(until = fromDate.atStartOfDay()).withBase(event.repeatingPattern)
+        save(
+            event.copy(repeatingPattern = newRepeatingPattern).withBase(event)
+        )
+    }
+
+    private fun deleteAllInstances(event: CalendarEvent) = repository.deleteAllBySequenceId(event.sequenceId)
+
+    private fun updateSingleInstance(event: CalendarEvent, date: ZonedDateTime, newStartTime: LocalTime, newDuration: Int) {
+        // create new non-repeating event on the date the update is applied
+        val newNonRepeatingEvent = event.copy(
+            startDate = date.withTime(newStartTime),
+            duration = newDuration,
+            repeatingPattern = null
+        )
+        save(newNonRepeatingEvent)
+        // create new repeating event from the next occurrence onwards
+        val (previousOccurrence, nextOccurrence) = getPreviousAndNextOccurrence(event, date)
+        nextOccurrence?.let {
+            val repeatingPatternForNewEvent = event.repeatingPattern!!.copy(start = nextOccurrence)
+            val newEvent = event.copy(
+                startDate = nextOccurrence,
+                repeatingPattern = repeatingPatternForNewEvent
+            )
+            save(newEvent)
+        }
+        // update the repeating pattern for the original event or delete the original event if the first instance is modified
+        if (previousOccurrence == null) {
+            repository.delete(event)
+        } else {
+            val updatedRepeatingPattern = event.repeatingPattern!!.copy(
+                until = previousOccurrence.plusMinutes(newDuration.toLong())
+            ).withBase(event.repeatingPattern)
+            // TODO: Check if this is needed, maybe save just the repeating pattern from its repository?
+            save(
+                event.copy(repeatingPattern = updatedRepeatingPattern).withBase(event)
+            )
+        }
+    }
+
+    private fun updateThisAndAllFollowingInstances() {
+        // TODO
+    }
+
+    private fun updateAllInstances() {
+        // TODO
+    }
+
+    private fun getPreviousAndNextOccurrence(event: CalendarEvent, fromDate: ZonedDateTime): PreviousAndNextOccurrence =
+        restClient.post()
             .uri("/calculate-previous-next-execution")
             .contentType(APPLICATION_JSON)
+            .accept(APPLICATION_JSON)
             .body(
                 mapOf(
                     "rruleRequest" to event.toRRuleRequest(),
@@ -111,48 +214,6 @@ class CalendarEventService internal constructor(
                 )
             ).retrieve()
             .body(PreviousAndNextOccurrence::class.java)!!
-        val newRepeatingPatternForExistingEvent =
-            event.repeatingPattern!!.copy(until = previousOccurrence?.plusMinutes(event.duration.toLong()))
-        repeatingPatternService.save(newRepeatingPatternForExistingEvent)
-        nextOccurrence?.let { it ->
-            val occurrenceCount = event.repeatingPattern.occurrenceCount?.let { it - order - 1 }
-            val repeatingPatternForNewEvent = event.repeatingPattern.copy(
-                start = it,
-                occurrenceCount = occurrenceCount
-            )
-            val newEvent = event.copy(
-                startDate = it,
-                repeatingPattern = repeatingPatternForNewEvent,
-                sequenceId = event.sequenceId
-            )
-            save(newEvent.toDto()) // save new event
-        }
-        val oldRepeatingPattern = event.repeatingPattern
-        save(
-            event.copy(repeatingPattern = newRepeatingPatternForExistingEvent).withBase(event).toDto()
-        ) // save existing event
-        repeatingPatternService.delete(oldRepeatingPattern)
-    }
-
-    private fun deleteThisAndAllFollowintInstances(id: Long, fromDate: ZonedDateTime) {
-        val event = repository.findById(id).orElseThrow()
-        if (event.isNonRepeating) {
-            repository.delete(event)
-            return
-        }
-        val otherEventsInSequence = repository.findAllBySequenceIdAndStartDateGreaterThanEqual(event.sequenceId, fromDate)
-            .filter { it.id != event.id }
-        repository.deleteAll(otherEventsInSequence)
-        val newRepeatingPattern = event.repeatingPattern!!.copy(until = fromDate.atStartOfDay()).withBase(event.repeatingPattern)
-        save(
-            event.copy(repeatingPattern = newRepeatingPattern).withBase(event).toDto()
-        )
-    }
-
-    private fun deleteAllInstances(eventId: Long) {
-        val event = repository.findById(eventId).orElseThrow()
-        repository.deleteAllBySequenceId(event.sequenceId)
-    }
 
     private data class PreviousAndNextOccurrence(
         val previousOccurrence: ZonedDateTime?,
@@ -169,6 +230,6 @@ data class CalendarEventInstanceInfo(
 )
 
 data class RRuleTextAndString(
-    val rruleText: String,
-    val rruleString: String
+    val rruleText: String?,
+    val rruleString: String?
 )

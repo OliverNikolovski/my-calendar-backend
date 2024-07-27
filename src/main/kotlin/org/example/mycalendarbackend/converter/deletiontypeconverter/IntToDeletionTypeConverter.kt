@@ -1,16 +1,16 @@
 package org.example.mycalendarbackend.converter.deletiontypeconverter
 
-import org.example.mycalendarbackend.domain.enums.DeletionType
+import org.example.mycalendarbackend.domain.enums.ActionType
 import org.springframework.core.convert.converter.Converter
 import org.springframework.stereotype.Component
 
 @Component
-class StringToDeletionTypeConverter : Converter<String, DeletionType> {
-    override fun convert(source: String): DeletionType {
+class StringToDeletionTypeConverter : Converter<String, ActionType> {
+    override fun convert(source: String): ActionType {
         return when (source) {
-            "0" -> DeletionType.THIS_EVENT
-            "1" -> DeletionType.THIS_AND_ALL_FOLLOWING_EVENTS
-            "2" -> DeletionType.ALL_EVENTS
+            "0" -> ActionType.THIS_EVENT
+            "1" -> ActionType.THIS_AND_ALL_FOLLOWING_EVENTS
+            "2" -> ActionType.ALL_EVENTS
             else -> throw IllegalArgumentException("Invalid DeletionType value: $source")
         }
     }

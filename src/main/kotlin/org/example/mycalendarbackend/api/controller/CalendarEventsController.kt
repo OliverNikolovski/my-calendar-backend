@@ -1,7 +1,8 @@
 package org.example.mycalendarbackend.api.controller
 
-import org.example.mycalendarbackend.domain.dto.CalendarEventDto
-import org.example.mycalendarbackend.domain.enums.DeletionType
+import org.example.mycalendarbackend.api.request.CalendarEventCreationRequest
+import org.example.mycalendarbackend.api.request.CalendarEventUpdateRequest
+import org.example.mycalendarbackend.domain.enums.ActionType
 import org.example.mycalendarbackend.service.CalendarEventInstanceInfo
 import org.example.mycalendarbackend.service.CalendarEventService
 import org.springframework.format.annotation.DateTimeFormat
@@ -10,7 +11,7 @@ import java.time.ZonedDateTime
 
 @RestController
 @RequestMapping("/api/calendar-events")
-class CalendarEventsController(
+class CalendarEventsController internal constructor(
     private val service: CalendarEventService
 ) {
 
@@ -25,13 +26,17 @@ class CalendarEventsController(
         service.generateInstancesForEvent(eventId)
 
     @PostMapping
-    fun create(@RequestBody calendarEventDto: CalendarEventDto) = service.save(calendarEventDto)
+    fun create(@RequestBody request: CalendarEventCreationRequest) = service.save(request)
 
     @DeleteMapping("/{id}")
     fun delete(@PathVariable id: Long,
-               @RequestParam deletionType: DeletionType,
+               @RequestParam actionType: ActionType,
                @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) fromDate: ZonedDateTime,
                @RequestParam order: Int) =
-        service.delete(id, fromDate, deletionType, order)
+        service.delete(id, fromDate, actionType, order)
+
+    @PatchMapping("/{id}")
+    fun update(@PathVariable id: Long,
+               @RequestBody updateRequest: CalendarEventUpdateRequest) = service.update(id, updateRequest)
 
 }

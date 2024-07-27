@@ -1,5 +1,6 @@
 package org.example.mycalendarbackend.extension
 
+import org.example.mycalendarbackend.api.request.CalendarEventCreationRequest
 import org.example.mycalendarbackend.domain.dto.CalendarEventDto
 import org.example.mycalendarbackend.domain.dto.RRuleRequest
 import org.example.mycalendarbackend.domain.entity.CalendarEvent
@@ -15,13 +16,22 @@ fun CalendarEvent.toDto(): CalendarEventDto = CalendarEventDto(
     sequenceId = sequenceId
 )
 
-fun CalendarEventDto.toEntity(sequenceId: String): CalendarEvent = CalendarEvent(
+fun CalendarEventDto.toEntity(): CalendarEvent = CalendarEvent(
     title = title,
     description = description,
     startDate = startDate,
     duration = duration,
     repeatingPattern = repeatingPattern?.toEntity(startDate),
-    sequenceId = this.sequenceId ?: sequenceId
+    sequenceId = sequenceId
+).also { it.id = id }
+
+fun CalendarEventCreationRequest.toEntity(sequenceId: String): CalendarEvent = CalendarEvent(
+    title = title,
+    description = description,
+    startDate = startDate,
+    duration = duration,
+    repeatingPattern = repeatingPattern?.toEntity(startDate),
+    sequenceId = sequenceId
 ).also { it.id = id }
 
 fun CalendarEvent.toRRuleRequest(): RRuleRequest =
@@ -59,3 +69,4 @@ fun CalendarEventDto.toRRuleRequest(): RRuleRequest =
             interval = repeatingPattern.interval
         )
     }
+

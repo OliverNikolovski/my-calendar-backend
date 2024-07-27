@@ -1,6 +1,7 @@
 package org.example.mycalendarbackend.extension
 
 import org.example.mycalendarbackend.domain.dto.DateTime
+import java.time.LocalTime
 import java.time.ZonedDateTime
 
 fun ZonedDateTime.atStartOfDay(): ZonedDateTime =
@@ -19,3 +20,5 @@ fun ZonedDateTime.toDateTime(): DateTime = DateTime(
 )
 
 fun ZonedDateTime.plusOneDay(): ZonedDateTime = plusDays(1)
+
+fun ZonedDateTime.withTime(time: LocalTime) = withHour(time.hour).withMinute(time.minute).withSecond(time.second).withNano(time.second)

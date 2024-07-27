@@ -66,7 +66,6 @@ app.post('/calculate-previous-next-execution', (req, res) => {
         previousOccurrence: rrule.before(date),
         nextOccurrence: rrule.after(date)
     }
-    console.log('response', response);
     res.send(response);
 });
 
