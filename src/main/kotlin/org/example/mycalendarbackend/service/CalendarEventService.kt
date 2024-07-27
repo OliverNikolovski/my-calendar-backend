@@ -2,6 +2,7 @@ package org.example.mycalendarbackend.service
 
 import jakarta.transaction.Transactional
 import org.example.mycalendarbackend.domain.dto.*
+import org.example.mycalendarbackend.domain.entity.CalendarEvent
 import org.example.mycalendarbackend.domain.enums.DeletionType
 import org.example.mycalendarbackend.extension.*
 import org.example.mycalendarbackend.repository.CalendarEventRepository
@@ -10,6 +11,7 @@ import org.springframework.http.MediaType.*
 import org.springframework.stereotype.Service
 import org.springframework.web.client.RestClient
 import java.time.ZonedDateTime
+import java.util.*
 
 @Service
 class CalendarEventService internal constructor(
@@ -67,9 +69,6 @@ class CalendarEventService internal constructor(
 
     @Transactional
     fun save(calendarEventDto: CalendarEventDto): Long {
-        val parent = calendarEventDto.parentId?.let {
-            repository.getReferenceById(it)
-        }
         var dto = calendarEventDto
         if (calendarEventDto.isRepeating) {
             val result = restClient.post()
@@ -86,20 +85,21 @@ class CalendarEventService internal constructor(
                 )
             )
         }
-        return repository.save(dto.toEntity(parent)).id!!
+        return repository.save(dto.toEntity(UUID.randomUUID().toString())).id!!
     }
 
     @Transactional
     fun delete(id: Long, fromDate: ZonedDateTime, deletionType: DeletionType, order: Int) = when (deletionType) {
         DeletionType.THIS_EVENT -> deleteThisInstance(id, fromDate, order)
         DeletionType.THIS_AND_ALL_FOLLOWING_EVENTS -> deleteThisAndAllFollowintInstances(id, fromDate)
-        DeletionType.ALL_EVENTS -> deleteAllInstances(id, fromDate)
+        DeletionType.ALL_EVENTS -> deleteAllInstances(id)
     }
 
     private fun deleteThisInstance(id: Long, fromDate: ZonedDateTime, order: Int) {
         val event = repository.findById(id).orElseThrow()
         if (event.isNonRepeating) {
             repository.delete(event)
+            return
         }
         val (previousOccurrence, nextOccurrence) = restClient.post()
             .uri("/calculate-previous-next-execution")
@@ -123,7 +123,7 @@ class CalendarEventService internal constructor(
             val newEvent = event.copy(
                 startDate = it,
                 repeatingPattern = repeatingPatternForNewEvent,
-                parent = event,
+                sequenceId = event.sequenceId
             )
             save(newEvent.toDto()) // save new event
         }
@@ -135,11 +135,23 @@ class CalendarEventService internal constructor(
     }
 
     private fun deleteThisAndAllFollowintInstances(id: Long, fromDate: ZonedDateTime) {
-        //TODO
+        val event = repository.findById(id).orElseThrow()
+        if (event.isNonRepeating) {
+            repository.delete(event)
+            return
+        }
+        val otherEventsInSequence = repository.findAllBySequenceIdAndStartDateGreaterThanEqual(event.sequenceId, fromDate)
+            .filter { it.id != event.id }
+        repository.deleteAll(otherEventsInSequence)
+        val newRepeatingPattern = event.repeatingPattern!!.copy(until = fromDate.atStartOfDay()).withBase(event.repeatingPattern)
+        save(
+            event.copy(repeatingPattern = newRepeatingPattern).withBase(event).toDto()
+        )
     }
 
-    private fun deleteAllInstances(id: Long, fromDate: ZonedDateTime) {
-        //TODO
+    private fun deleteAllInstances(eventId: Long) {
+        val event = repository.findById(eventId).orElseThrow()
+        repository.deleteAllBySequenceId(event.sequenceId)
     }
 
     private data class PreviousAndNextOccurrence(

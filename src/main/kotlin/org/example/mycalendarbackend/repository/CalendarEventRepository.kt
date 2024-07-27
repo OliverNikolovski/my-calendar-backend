@@ -9,10 +9,10 @@ import java.time.ZonedDateTime
 @Repository
 internal interface CalendarEventRepository : JpaRepository<CalendarEvent, Long>, JpaSpecificationExecutor<CalendarEvent> {
 
-    fun findAllByParentId(parentId: Long): List<CalendarEvent>
-
-    fun findAllByIdOrParentId(id: Long, parentId: Long): List<CalendarEvent>
-
     fun findAllByStartDateGreaterThanEqual(from: ZonedDateTime): List<CalendarEvent>
+
+    fun findAllBySequenceIdAndStartDateGreaterThanEqual(sequenceId: String, fromDate: ZonedDateTime): List<CalendarEvent>
+
+    fun deleteAllBySequenceId(sequenceId: String)
 
 }

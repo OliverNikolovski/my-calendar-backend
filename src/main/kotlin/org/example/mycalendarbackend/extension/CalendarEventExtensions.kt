@@ -12,16 +12,16 @@ fun CalendarEvent.toDto(): CalendarEventDto = CalendarEventDto(
     startDate = startDate,
     duration = duration,
     repeatingPattern = repeatingPattern?.toDto(),
-    parentId = parent?.id
+    sequenceId = sequenceId
 )
 
-fun CalendarEventDto.toEntity(parent: CalendarEvent?): CalendarEvent = CalendarEvent(
+fun CalendarEventDto.toEntity(sequenceId: String): CalendarEvent = CalendarEvent(
     title = title,
     description = description,
     startDate = startDate,
     duration = duration,
     repeatingPattern = repeatingPattern?.toEntity(startDate),
-    parent = parent
+    sequenceId = this.sequenceId ?: sequenceId
 ).also { it.id = id }
 
 fun CalendarEvent.toRRuleRequest(): RRuleRequest =
