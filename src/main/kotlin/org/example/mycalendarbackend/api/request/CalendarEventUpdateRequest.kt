@@ -5,6 +5,7 @@ import java.time.LocalTime
 import java.time.ZonedDateTime
 
 data class CalendarEventUpdateRequest(
+    val eventId: Long,
     val fromDate: ZonedDateTime,
     val actionType: ActionType,
     val newStartTime: LocalTime,

@@ -35,8 +35,7 @@ class CalendarEventsController internal constructor(
                @RequestParam order: Int) =
         service.delete(id, fromDate, actionType, order)
 
-    @PatchMapping("/{id}")
-    fun update(@PathVariable id: Long,
-               @RequestBody updateRequest: CalendarEventUpdateRequest) = service.update(id, updateRequest)
+    @PatchMapping()
+    fun update(@RequestBody updateRequest: CalendarEventUpdateRequest) = service.update(updateRequest)
 
 }

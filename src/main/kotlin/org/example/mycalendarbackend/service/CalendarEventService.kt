@@ -105,10 +105,15 @@ internal class CalendarEventService(
         }
     }
 
-    fun update(id: Long, updateRequest: CalendarEventUpdateRequest) {
-        val event = repository.findById(id).orElseThrow()
+    fun update(updateRequest: CalendarEventUpdateRequest) {
+        val event = repository.findById(updateRequest.eventId).orElseThrow()
         if (event.isNonRepeating) {
-            // TODO: Update
+            save(
+                event.copy(
+                    startDate = event.startDate.withTime(updateRequest.newStartTime),
+                    duration = updateRequest.newDuration
+                ).withBase(event)
+            )
             return
         }
         when (updateRequest.actionType) {
