@@ -21,4 +21,5 @@ fun ZonedDateTime.toDateTime(): DateTime = DateTime(
 
 fun ZonedDateTime.plusOneDay(): ZonedDateTime = plusDays(1)
 
-fun ZonedDateTime.withTime(time: LocalTime) = withHour(time.hour).withMinute(time.minute).withSecond(time.second).withNano(time.second)
+fun ZonedDateTime.withTime(time: LocalTime): ZonedDateTime =
+    withHour(time.hour).withMinute(time.minute).withSecond(time.second).withNano(time.second)

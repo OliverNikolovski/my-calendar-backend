@@ -14,6 +14,8 @@ import org.springframework.stereotype.Service
 import org.springframework.web.client.RestClient
 import java.time.LocalTime
 import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeFormatterBuilder
 import java.util.*
 
 @Service
@@ -107,10 +109,12 @@ internal class CalendarEventService(
 
     fun update(updateRequest: CalendarEventUpdateRequest) {
         val event = repository.findById(updateRequest.eventId).orElseThrow()
+        val formatter = DateTimeFormatter.ofPattern("h:mm a", Locale.US)
+        val newStartTime = LocalTime.parse(updateRequest.newStartTime.uppercase(), formatter)
         if (event.isNonRepeating) {
             save(
                 event.copy(
-                    startDate = event.startDate.withTime(updateRequest.newStartTime),
+                    startDate = event.startDate.withTime(newStartTime),
                     duration = updateRequest.newDuration
                 ).withBase(event)
             )
@@ -120,7 +124,7 @@ internal class CalendarEventService(
             ActionType.THIS_EVENT -> updateSingleInstance(
                 event = event,
                 date = updateRequest.fromDate,
-                newStartTime = updateRequest.newStartTime,
+                newStartTime = newStartTime,
                 newDuration = updateRequest.newDuration
             )
             ActionType.THIS_AND_ALL_FOLLOWING_EVENTS -> updateThisAndAllFollowingInstances()
