@@ -12,10 +12,7 @@ import org.springframework.core.ParameterizedTypeReference
 import org.springframework.http.MediaType.*
 import org.springframework.stereotype.Service
 import org.springframework.web.client.RestClient
-import java.time.LocalTime
 import java.time.ZonedDateTime
-import java.time.format.DateTimeFormatter
-import java.time.format.DateTimeFormatterBuilder
 import java.util.*
 
 @Service
@@ -73,7 +70,7 @@ internal class CalendarEventService(
     }
 
     @Transactional
-    fun save(request: CalendarEventCreationRequest): Long = save(request.toEntity(UUID.randomUUID().toString()))
+    fun save(request: CalendarEventCreationRequest): Long = save(request.toEntity(generateSequenceId()))
 
     fun save(calendarEvent: CalendarEvent): Long {
         val (rruleText, rruleString) = if (calendarEvent.isRepeating) {
@@ -109,12 +106,10 @@ internal class CalendarEventService(
 
     fun update(updateRequest: CalendarEventUpdateRequest) {
         val event = repository.findById(updateRequest.eventId).orElseThrow()
-        val formatter = DateTimeFormatter.ofPattern("h:mm a", Locale.US)
-        val newStartTime = LocalTime.parse(updateRequest.newStartTime.uppercase(), formatter)
         if (event.isNonRepeating) {
             save(
                 event.copy(
-                    startDate = event.startDate.withTime(newStartTime),
+                    startDate = updateRequest.newStartDate,
                     duration = updateRequest.newDuration
                 ).withBase(event)
             )
@@ -123,8 +118,7 @@ internal class CalendarEventService(
         when (updateRequest.actionType) {
             ActionType.THIS_EVENT -> updateSingleInstance(
                 event = event,
-                date = updateRequest.fromDate,
-                newStartTime = newStartTime,
+                newFromDate = updateRequest.newStartDate,
                 newDuration = updateRequest.newDuration
             )
             ActionType.THIS_AND_ALL_FOLLOWING_EVENTS -> updateThisAndAllFollowingInstances()
@@ -171,21 +165,22 @@ internal class CalendarEventService(
 
     private fun deleteAllInstances(event: CalendarEvent) = repository.deleteAllBySequenceId(event.sequenceId)
 
-    private fun updateSingleInstance(event: CalendarEvent, date: ZonedDateTime, newStartTime: LocalTime, newDuration: Int) {
+    private fun updateSingleInstance(event: CalendarEvent, newFromDate: ZonedDateTime, newDuration: Int) {
         // create new non-repeating event on the date the update is applied
         val newNonRepeatingEvent = event.copy(
-            startDate = date.withTime(newStartTime),
+            startDate = newFromDate,
             duration = newDuration,
             repeatingPattern = null
         )
         save(newNonRepeatingEvent)
         // create new repeating event from the next occurrence onwards
-        val (previousOccurrence, nextOccurrence) = getPreviousAndNextOccurrence(event, date)
+        // HERE IS THE BUG. previousExecution is returned wrong
+        val (previousOccurrence, nextOccurrence) = getPreviousAndNextOccurrence(event, newFromDate)
         nextOccurrence?.let {
             val repeatingPatternForNewEvent = event.repeatingPattern!!.copy(start = nextOccurrence)
             val newEvent = event.copy(
                 startDate = nextOccurrence,
-                repeatingPattern = repeatingPatternForNewEvent
+                repeatingPattern = repeatingPatternForNewEvent,
             )
             save(newEvent)
         }
@@ -194,7 +189,7 @@ internal class CalendarEventService(
             repository.delete(event)
         } else {
             val updatedRepeatingPattern = event.repeatingPattern!!.copy(
-                until = previousOccurrence.plusMinutes(newDuration.toLong())
+                until = previousOccurrence.plusMinutes(event.duration.toLong())
             ).withBase(event.repeatingPattern)
             // TODO: Check if this is needed, maybe save just the repeating pattern from its repository?
             save(
@@ -223,6 +218,10 @@ internal class CalendarEventService(
                 )
             ).retrieve()
             .body(PreviousAndNextOccurrence::class.java)!!
+
+    private fun generateSequenceId(): String {
+        return UUID.randomUUID().toString()
+    }
 
     private data class PreviousAndNextOccurrence(
         val previousOccurrence: ZonedDateTime?,
