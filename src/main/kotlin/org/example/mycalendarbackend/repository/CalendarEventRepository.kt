@@ -11,6 +11,8 @@ internal interface CalendarEventRepository : JpaRepository<CalendarEvent, Long>,
 
     fun findAllByStartDateGreaterThanEqual(from: ZonedDateTime): List<CalendarEvent>
 
+    fun findAllBySequenceId(sequenceId: String): List<CalendarEvent>
+
     fun findAllBySequenceIdAndStartDateGreaterThanEqual(sequenceId: String, fromDate: ZonedDateTime): List<CalendarEvent>
 
     fun deleteAllBySequenceId(sequenceId: String)

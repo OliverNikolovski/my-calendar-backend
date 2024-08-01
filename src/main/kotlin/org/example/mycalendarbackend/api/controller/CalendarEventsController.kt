@@ -25,6 +25,10 @@ class CalendarEventsController internal constructor(
     fun generateInstancesForEventId(@RequestParam eventId: Long): Map<String, List<CalendarEventInstanceInfo>> =
         service.generateInstancesForEvent(eventId)
 
+    @GetMapping("/event-instances-for-sequence/{sequenceId}")
+    fun getEventInstancesForSequence(@PathVariable sequenceId: String): Map<String, List<CalendarEventInstanceInfo>> =
+        service.generateInstancesForSequence(sequenceId)
+
     @PostMapping
     fun create(@RequestBody request: CalendarEventCreationRequest) = service.save(request)
 

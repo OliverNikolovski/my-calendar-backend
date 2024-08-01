@@ -24,14 +24,17 @@ internal class CalendarEventService(
 
     fun generateInstanceForEvents(from: ZonedDateTime): Map<String, List<CalendarEventInstanceInfo>> {
         val events = repository.findAllByStartDateGreaterThanEqual(from)
+        return createEventInstancesMapFromEvents(events)
+    }
+
+    fun generateInstancesForSequence(sequenceId: String): Map<String, List<CalendarEventInstanceInfo>> {
+        val events = repository.findAllBySequenceId(sequenceId)
+        return createEventInstancesMapFromEvents(events)
+    }
+
+    private fun createEventInstancesMapFromEvents(events: List<CalendarEvent>): Map<String, List<CalendarEventInstanceInfo>> {
         val requests = events.map { it.toRRuleRequest() }
-        val response = restClient.post()
-            .uri("/generate-event-instances")
-            .contentType(APPLICATION_JSON)
-            .accept(APPLICATION_JSON)
-            .body(requests)
-            .retrieve()
-            .body(object : ParameterizedTypeReference<List<List<ZonedDateTime>>>() {})!!  // response type
+        val response = generateEventInstances(requests)
 
         // Process the response and map to CalendarEventInstanceInfo
         val eventInstances = events.zip(response) { event, dates ->
@@ -119,6 +122,7 @@ internal class CalendarEventService(
             ActionType.THIS_EVENT -> updateSingleInstance(
                 event = event,
                 newFromDate = updateRequest.newStartDate,
+                oldFromDate = updateRequest.fromDate,
                 newDuration = updateRequest.newDuration
             )
             ActionType.THIS_AND_ALL_FOLLOWING_EVENTS -> updateThisAndAllFollowingInstances()
@@ -165,7 +169,7 @@ internal class CalendarEventService(
 
     private fun deleteAllInstances(event: CalendarEvent) = repository.deleteAllBySequenceId(event.sequenceId)
 
-    private fun updateSingleInstance(event: CalendarEvent, newFromDate: ZonedDateTime, newDuration: Int) {
+    private fun updateSingleInstance(event: CalendarEvent, oldFromDate: ZonedDateTime, newFromDate: ZonedDateTime, newDuration: Int) {
         // create new non-repeating event on the date the update is applied
         val newNonRepeatingEvent = event.copy(
             startDate = newFromDate,
@@ -175,7 +179,7 @@ internal class CalendarEventService(
         save(newNonRepeatingEvent)
         // create new repeating event from the next occurrence onwards
         // HERE IS THE BUG. previousExecution is returned wrong
-        val (previousOccurrence, nextOccurrence) = getPreviousAndNextOccurrence(event, newFromDate)
+        val (previousOccurrence, nextOccurrence) = getPreviousAndNextOccurrence(event, oldFromDate)
         nextOccurrence?.let {
             val repeatingPatternForNewEvent = event.repeatingPattern!!.copy(start = nextOccurrence)
             val newEvent = event.copy(
@@ -222,6 +226,15 @@ internal class CalendarEventService(
     private fun generateSequenceId(): String {
         return UUID.randomUUID().toString()
     }
+
+    private fun generateEventInstances(rruleRequests: List<RRuleRequest>) =
+        restClient.post()
+            .uri("/generate-event-instances")
+            .contentType(APPLICATION_JSON)
+            .accept(APPLICATION_JSON)
+            .body(rruleRequests)
+            .retrieve()
+            .body(object : ParameterizedTypeReference<List<List<ZonedDateTime>>>() {})!!
 
     private data class PreviousAndNextOccurrence(
         val previousOccurrence: ZonedDateTime?,
