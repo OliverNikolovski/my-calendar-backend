@@ -1,6 +1,5 @@
 package org.example.mycalendarbackend.service
 
-import jakarta.transaction.Transactional
 import org.example.mycalendarbackend.api.request.CalendarEventCreationRequest
 import org.example.mycalendarbackend.api.request.CalendarEventUpdateRequest
 import org.example.mycalendarbackend.domain.dto.*
@@ -11,6 +10,7 @@ import org.example.mycalendarbackend.repository.CalendarEventRepository
 import org.springframework.core.ParameterizedTypeReference
 import org.springframework.http.MediaType.*
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.client.RestClient
 import java.time.ZonedDateTime
 import java.util.*
@@ -133,15 +133,10 @@ internal class CalendarEventService(
         }
         val (previousOccurrence, nextOccurrence) = getPreviousAndNextOccurrence(event, fromDate)
         nextOccurrence?.let { it ->
+            // must set occurrenceCount, in case until is null
             val occurrenceCount = event.repeatingPattern!!.occurrenceCount?.let { it - order - 1 }
-            val repeatingPatternForNewEvent = event.repeatingPattern.copy(
-                start = it,
-                occurrenceCount = occurrenceCount
-            )
-            val newEvent = event.copy(
-                startDate = it,
-                repeatingPattern = repeatingPatternForNewEvent
-            )
+            val repeatingPatternForNewEvent = event.repeatingPattern.copy(occurrenceCount = occurrenceCount)
+            val newEvent = event.copy(startDate = it, repeatingPattern = repeatingPatternForNewEvent)
             save(newEvent) // save new event
         }
         if (previousOccurrence == null) {
@@ -170,12 +165,7 @@ internal class CalendarEventService(
 
     private fun updateSingleInstance(event: CalendarEvent, oldFromDate: ZonedDateTime, newFromDate: ZonedDateTime, newDuration: Int) {
         if (event.isNonRepeating) {
-            save(
-                event.copy(
-                    startDate = newFromDate,
-                    duration = newDuration
-                ).withBase(event)
-            )
+            save(event.copy(startDate = newFromDate, duration = newDuration).withBase(event))
             return
         }
         // create new non-repeating event on the date the update is applied
@@ -186,14 +176,9 @@ internal class CalendarEventService(
         )
         save(newNonRepeatingEvent)
         // create new repeating event from the next occurrence onwards
-        // HERE IS THE BUG. previousExecution is returned wrong
         val (previousOccurrence, nextOccurrence) = getPreviousAndNextOccurrence(event, oldFromDate)
         nextOccurrence?.let {
-            val repeatingPatternForNewEvent = event.repeatingPattern!!.copy(start = nextOccurrence)
-            val newEvent = event.copy(
-                startDate = nextOccurrence,
-                repeatingPattern = repeatingPatternForNewEvent,
-            )
+            val newEvent = event.copy(startDate = nextOccurrence, repeatingPattern = event.repeatingPattern!!.copy())
             save(newEvent)
         }
         // update the repeating pattern for the original event or delete the original event if the first instance is modified
@@ -222,15 +207,15 @@ internal class CalendarEventService(
         }.forEach { save(it) }
 
         if (event.isRepeating) {
-            // create new event with the new time and duration and new repeating pattern for it
-            val repeatingPatternForNewEvent = event.repeatingPattern!!.copy(start = newFromDate)
-            val newEvent =
-                event.copy(startDate = newFromDate, duration = newDuration, repeatingPattern = repeatingPatternForNewEvent)
+            // create new event with the new time and duration
+            val newEvent = event.copy(startDate = newFromDate, duration = newDuration)
             save(newEvent)
 
             // modify repeating pattern for old event
-            val updatedRepeatingPattern = event.repeatingPattern.copy(until = oldFromDate.plusMinutes(event.duration.toLong()))
+            val updatedRepeatingPattern = event.repeatingPattern!!.copy(until = oldFromDate.plusMinutes(event.duration.toLong()))
             repeatingPatternService.save(updatedRepeatingPattern)
+        } else {
+            save(event.copy(startDate = newFromDate, duration = newDuration).withBase(event))
         }
     }
 

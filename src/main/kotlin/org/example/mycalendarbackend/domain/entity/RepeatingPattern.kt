@@ -35,9 +35,6 @@ data class RepeatingPattern(
     @Column(name = "rrule_string")
     val rruleString: String?,
 
-    @Column(name = "start")
-    val start: ZonedDateTime?,
-
     @Column(name = "until")
     val until: ZonedDateTime?
 

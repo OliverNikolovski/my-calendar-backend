@@ -21,7 +21,7 @@ fun CalendarEventDto.toEntity(): CalendarEvent = CalendarEvent(
     description = description,
     startDate = startDate,
     duration = duration,
-    repeatingPattern = repeatingPattern?.toEntity(startDate),
+    repeatingPattern = repeatingPattern?.toEntity(),
     sequenceId = sequenceId
 ).also { it.id = id }
 
@@ -30,7 +30,7 @@ fun CalendarEventCreationRequest.toEntity(sequenceId: String): CalendarEvent = C
     description = description,
     startDate = startDate,
     duration = duration,
-    repeatingPattern = repeatingPattern?.toEntity(startDate),
+    repeatingPattern = repeatingPattern?.toEntity(),
     sequenceId = sequenceId
 ).also { it.id = id }
 
