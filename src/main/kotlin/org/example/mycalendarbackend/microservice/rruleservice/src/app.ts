@@ -62,15 +62,19 @@ app.post('/calculate-previous-next-execution', (req, res) => {
     const rruleRequest = req.body.rruleRequest as RRuleRequest;
     const date = new Date(req.body.date as string);
     const rrule = createRRuleFromRequest(rruleRequest);
-    console.log('date', date)
-    console.log('---------------------------------------------------------------------------------------')
-    console.log('RRULE dates:')
-    console.log(rrule.all())
     const response = {
         previousOccurrence: rrule.before(date),
         nextOccurrence: rrule.after(date)
     }
     res.send(response);
+});
+
+app.post('/calculate-previous-execution', (req, res) => {
+    const rruleRequest = req.body.rruleRequest as RRuleRequest;
+    const date = new Date(req.body.date as string);
+    const rrule = createRRuleFromRequest(rruleRequest);
+    const previousOccurrence = rrule.before(date)
+    res.send(previousOccurrence);
 });
 
 app.post('/generate-instances-for-events', (req, res) => {

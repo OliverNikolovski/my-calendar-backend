@@ -208,12 +208,21 @@ internal class CalendarEventService(
 
         if (event.isRepeating) {
             // create new event with the new time and duration
-            val newEvent = event.copy(startDate = newFromDate, duration = newDuration)
+            val newEvent = event.copy(startDate = newFromDate, duration = newDuration, repeatingPattern = event.repeatingPattern!!.copy(
+                until = event.repeatingPattern.until?.withTimeFrom(newFromDate)?.plusMinutes(newDuration.toLong())
+            ))
             save(newEvent)
 
             // modify repeating pattern for old event
-            val updatedRepeatingPattern = event.repeatingPattern!!.copy(until = oldFromDate.plusMinutes(event.duration.toLong()))
-            repeatingPatternService.save(updatedRepeatingPattern)
+            val previousOccurrence = getPreviousOccurrence(event, oldFromDate)
+            if (previousOccurrence == null) {
+                repository.delete(event)
+            } else {
+                val updatedRepeatingPattern = event.repeatingPattern.copy(
+                    until = previousOccurrence.plusMinutes(event.duration.toLong())
+                ).withBase(event.repeatingPattern)
+                repeatingPatternService.save(updatedRepeatingPattern)
+            }
         } else {
             save(event.copy(startDate = newFromDate, duration = newDuration).withBase(event))
         }
@@ -242,6 +251,18 @@ internal class CalendarEventService(
                 )
             ).retrieve()
             .body(PreviousAndNextOccurrence::class.java)!!
+
+    private fun getPreviousOccurrence(event: CalendarEvent, referenceDate: ZonedDateTime): ZonedDateTime? =
+        restClient.post()
+            .uri("/calculate-previous-execution")
+            .contentType(APPLICATION_JSON)
+            .body(
+                mapOf(
+                    "rruleRequest" to event.toRRuleRequest(),
+                    "date" to referenceDate.toString()
+                )
+            ).retrieve()
+            .body(ZonedDateTime::class.java)
 
     private fun generateSequenceId(): String {
         return UUID.randomUUID().toString()
