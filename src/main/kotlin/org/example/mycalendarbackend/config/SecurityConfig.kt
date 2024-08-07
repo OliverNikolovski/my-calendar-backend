@@ -29,18 +29,12 @@ class SecurityConfig {
             sessionManagementConfigurer.sessionConcurrency {
                 it.maximumSessions(1)
             }
-        }
-            .build()
+        }.build()
     }
 
     @Bean
     fun httpSessionEventPublisher(): HttpSessionEventPublisher {
         return HttpSessionEventPublisher()
-    }
-
-    @Bean
-    fun userDetailsService(): UserDetailsService {
-        // TODO
     }
 
     @Bean
