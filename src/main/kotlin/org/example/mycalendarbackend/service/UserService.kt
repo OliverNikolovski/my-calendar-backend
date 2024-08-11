@@ -1,5 +1,6 @@
 package org.example.mycalendarbackend.service
 
+import org.example.mycalendarbackend.domain.entity.User
 import org.example.mycalendarbackend.repository.UserRepository
 import org.springframework.security.core.userdetails.UserDetails
 import org.springframework.security.core.userdetails.UserDetailsService
@@ -13,5 +14,7 @@ internal class UserService(
 
     override fun loadUserByUsername(username: String): UserDetails =
         userRepository.findByUsernameField(username) ?: throw UsernameNotFoundException("Username $username does not exist.")
+
+    fun save(user: User) = userRepository.save(user)
 
 }

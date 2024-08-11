@@ -15,6 +15,11 @@ class CalendarEventsController internal constructor(
     private val service: CalendarEventService
 ) {
 
+    @GetMapping("/test")
+    fun test(): String {
+        return "test"
+    }
+
     @GetMapping("/generate-instances-for-events")
     fun generateInstancesForEvents(@RequestParam
                                    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
