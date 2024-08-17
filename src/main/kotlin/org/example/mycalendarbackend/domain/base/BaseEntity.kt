@@ -8,7 +8,7 @@ import java.time.ZonedDateTime
 abstract class BaseEntity<T : Serializable> : Serializable {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue
     @Column(nullable = false, updatable = false)
     var id: T? = null
 

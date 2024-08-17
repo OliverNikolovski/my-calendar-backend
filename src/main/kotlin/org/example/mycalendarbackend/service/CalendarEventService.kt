@@ -19,12 +19,21 @@ import java.util.*
 internal class CalendarEventService(
     private val repository: CalendarEventRepository,
     private val restClient: RestClient,
-    private val repeatingPatternService: RepeatingPatternService
+    private val repeatingPatternService: RepeatingPatternService,
+    private val userService: UserService,
+    private val userSequenceService: UserSequenceService
 ) {
 
     fun generateInstanceForEvents(from: ZonedDateTime): Map<String, List<CalendarEventInstanceInfo>> {
         val events = repository.findAllByStartDateGreaterThanEqual(from)
         return createEventInstancesMapFromEvents(events)
+    }
+
+    fun generateEventInstancesForAuthenticatedUser(): Map<String, List<CalendarEventInstanceInfo>> {
+        val userId = userService.getAuthenticatedUserId()
+        val userSequences = userSequenceService.findAllSequencesByUserId(userId)
+        val userEvents = repository.findAllBySequenceIdIn(userSequences)
+        return createEventInstancesMapFromEvents(userEvents)
     }
 
     fun generateInstancesForSequence(sequenceId: String): Map<String, List<CalendarEventInstanceInfo>> {
@@ -72,7 +81,15 @@ internal class CalendarEventService(
         return result
     }
 
-    fun save(request: CalendarEventCreationRequest): Long = save(request.toEntity(generateSequenceId()))
+    @Transactional
+    fun save(request: CalendarEventCreationRequest): Long {
+        val sequenceId = generateSequenceId()
+        userSequenceService.save(
+            userId = userService.getAuthenticatedUserId(),
+            sequenceId = sequenceId
+        )
+        return save(request.toEntity(sequenceId))
+    }
 
     fun save(calendarEvent: CalendarEvent): Long {
         val (rruleText, rruleString) = if (calendarEvent.isRepeating) {

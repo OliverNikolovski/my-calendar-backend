@@ -2,6 +2,7 @@ package org.example.mycalendarbackend.service
 
 import org.example.mycalendarbackend.domain.entity.User
 import org.example.mycalendarbackend.repository.UserRepository
+import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.security.core.userdetails.UserDetails
 import org.springframework.security.core.userdetails.UserDetailsService
 import org.springframework.security.core.userdetails.UsernameNotFoundException
@@ -16,5 +17,12 @@ internal class UserService(
         userRepository.findByUsernameField(username) ?: throw UsernameNotFoundException("Username $username does not exist.")
 
     fun save(user: User) = userRepository.save(user)
+
+    fun getAuthenticatedUserId(): Long {
+        val authentication = SecurityContextHolder.getContext().authentication
+        val userDetails = authentication.principal as UserDetails
+        val user = loadUserByUsername(userDetails.username) as User
+        return user.id!!
+    }
 
 }

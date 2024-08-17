@@ -1,4 +1,4 @@
-create schema calendar;
+create schema if not exists calendar;
 
 create table calendar.repeating_patterns
 (

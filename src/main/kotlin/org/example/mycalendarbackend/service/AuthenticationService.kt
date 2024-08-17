@@ -59,19 +59,18 @@ internal class AuthenticationService(
         val authHeader = request.getHeader(HttpHeaders.AUTHORIZATION)
         val userEmail: String
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            return
+            throw IllegalStateException("Missing token")
         }
         val refreshToken = authHeader.substring(7)
         userEmail = jwtService.extractUsername(refreshToken)
-        val user = this.userService.loadUserByUsername(userEmail)
-        if (jwtService.isTokenValid(refreshToken, user)) {
-            val accessToken = jwtService.generateToken(user)
-            val authResponse = AuthenticationResponse(
-                accessToken = accessToken,
-                refreshToken = refreshToken
-            )
-            ObjectMapper().writeValue(response.outputStream, authResponse)
-        }
+        val user = userService.loadUserByUsername(userEmail)
+        jwtService.checkTokenValidity(refreshToken, user)
+        val accessToken = jwtService.generateToken(user)
+        val authResponse = AuthenticationResponse(
+            accessToken = accessToken,
+            refreshToken = refreshToken
+        )
+        ObjectMapper().writeValue(response.outputStream, authResponse)
     }
 
 }

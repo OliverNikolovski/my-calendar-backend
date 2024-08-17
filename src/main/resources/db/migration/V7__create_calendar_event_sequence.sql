@@ -1,0 +1,1 @@
+create sequence calendar_events_seq; -- I don't know why it is needed, but the app does not start without it

@@ -5,6 +5,8 @@ import io.jsonwebtoken.Jwts
 import io.jsonwebtoken.io.Decoders
 import io.jsonwebtoken.security.Keys
 import org.example.mycalendarbackend.config.JwtConfigProps
+import org.example.mycalendarbackend.exception.JwtTokenExpiredException
+import org.example.mycalendarbackend.exception.JwtTokenInvalidSubjectException
 import org.springframework.security.core.userdetails.UserDetails
 import org.springframework.stereotype.Service
 import java.time.ZoneId
@@ -43,6 +45,16 @@ class JwtService(
     fun isTokenValid(token: String, userDetails: UserDetails): Boolean {
         val username = extractUsername(token)
         return (username == userDetails.username) && !isTokenExpired(token)
+    }
+
+    fun checkTokenValidity(token: String, userDetails: UserDetails) {
+        val username = extractUsername(token)
+        if (username != userDetails.username) {
+            throw JwtTokenInvalidSubjectException("Invalid subject")
+        }
+        if (isTokenExpired(token)) {
+            throw JwtTokenExpiredException("Token expired")
+        }
     }
 
     fun generateToken(userDetails: UserDetails?): String {
