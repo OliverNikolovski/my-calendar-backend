@@ -2,9 +2,11 @@ package org.example.mycalendarbackend.service
 
 import org.example.mycalendarbackend.api.request.CalendarEventCreationRequest
 import org.example.mycalendarbackend.api.request.CalendarEventUpdateRequest
+import org.example.mycalendarbackend.api.request.ShareEventRequest
 import org.example.mycalendarbackend.domain.dto.*
 import org.example.mycalendarbackend.domain.entity.CalendarEvent
 import org.example.mycalendarbackend.domain.enums.ActionType
+import org.example.mycalendarbackend.exception.NotAuthorizedException
 import org.example.mycalendarbackend.extension.*
 import org.example.mycalendarbackend.repository.CalendarEventRepository
 import org.springframework.core.ParameterizedTypeReference
@@ -20,8 +22,7 @@ internal class CalendarEventService(
     private val repository: CalendarEventRepository,
     private val restClient: RestClient,
     private val repeatingPatternService: RepeatingPatternService,
-    private val userService: UserService,
-    private val userSequenceService: UserSequenceService
+    private val sequenceService: CalendarEventSequenceService
 ) {
 
     fun generateInstanceForEvents(from: ZonedDateTime): Map<String, List<CalendarEventInstanceInfo>> {
@@ -30,8 +31,7 @@ internal class CalendarEventService(
     }
 
     fun generateEventInstancesForAuthenticatedUser(): Map<String, List<CalendarEventInstanceInfo>> {
-        val userId = userService.getAuthenticatedUserId()
-        val userSequences = userSequenceService.findAllSequencesByUserId(userId)
+        val userSequences = sequenceService.findAllSequencesForAuthenticatedUser()
         val userEvents = repository.findAllBySequenceIdIn(userSequences)
         return createEventInstancesMapFromEvents(userEvents)
     }
@@ -83,11 +83,8 @@ internal class CalendarEventService(
 
     @Transactional
     fun save(request: CalendarEventCreationRequest): Long {
-        val sequenceId = generateSequenceId()
-        userSequenceService.save(
-            userId = userService.getAuthenticatedUserId(),
-            sequenceId = sequenceId
-        )
+        val sequenceId = sequenceService.generateSequenceId()
+        sequenceService.saveSequenceForUserAndOwnerOnAuthenticatedUser(sequenceId)
         return save(request.toEntity(sequenceId))
     }
 
@@ -281,10 +278,6 @@ internal class CalendarEventService(
             ).retrieve()
             .body(ZonedDateTime::class.java)
 
-    private fun generateSequenceId(): String {
-        return UUID.randomUUID().toString()
-    }
-
     private fun generateEventInstances(rruleRequests: List<RRuleRequest>) =
         restClient.post()
             .uri("/generate-event-instances")
@@ -298,6 +291,14 @@ internal class CalendarEventService(
         val previousOccurrence: ZonedDateTime?,
         val nextOccurrence: ZonedDateTime?
     )
+
+    fun shareEventSequenceWithUser(request: ShareEventRequest) {
+        val (userId, sequenceId) = request
+        if (!sequenceService.isAuthenticatedUserOwnerOfSequence(sequenceId)) {
+            throw NotAuthorizedException("No permission to share specified event.")
+        }
+        sequenceService.saveSequenceForUser(userId, sequenceId)
+    }
 }
 
 data class CalendarEventInstanceInfo(

@@ -2,6 +2,7 @@ package org.example.mycalendarbackend.api.controller
 
 import org.example.mycalendarbackend.api.request.CalendarEventCreationRequest
 import org.example.mycalendarbackend.api.request.CalendarEventUpdateRequest
+import org.example.mycalendarbackend.api.request.ShareEventRequest
 import org.example.mycalendarbackend.domain.enums.ActionType
 import org.example.mycalendarbackend.service.CalendarEventInstanceInfo
 import org.example.mycalendarbackend.service.CalendarEventService
@@ -50,5 +51,8 @@ class CalendarEventsController internal constructor(
 
     @PatchMapping()
     fun update(@RequestBody updateRequest: CalendarEventUpdateRequest) = service.update(updateRequest)
+
+    @PostMapping("/share")
+    fun shareEventSequenceWithUser(@RequestBody request: ShareEventRequest) = service.shareEventSequenceWithUser(request)
 
 }

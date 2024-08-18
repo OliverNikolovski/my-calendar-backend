@@ -1,15 +1,11 @@
 package org.example.mycalendarbackend.domain.entity
 
 import jakarta.persistence.*
+import org.example.mycalendarbackend.domain.base.BaseEntity
 
 @Entity
 @Table(schema = "calendar", name = "user_sequences")
 data class UserSequence(
-
-    @Id
-    @GeneratedValue
-    @Column(name = "id", nullable = false, updatable = false)
-    val id: Long,
 
     @Column(name = "user_id", nullable = false)
     val userId: Long,
@@ -17,4 +13,4 @@ data class UserSequence(
     @Column(name = "sequence_id", nullable = false)
     val sequenceId: String
 
-)
+) : BaseEntity<Long>()
