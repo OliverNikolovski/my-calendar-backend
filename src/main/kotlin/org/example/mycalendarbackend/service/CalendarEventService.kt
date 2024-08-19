@@ -5,6 +5,7 @@ import org.example.mycalendarbackend.api.request.CalendarEventUpdateRequest
 import org.example.mycalendarbackend.api.request.ShareEventRequest
 import org.example.mycalendarbackend.domain.dto.*
 import org.example.mycalendarbackend.domain.entity.CalendarEvent
+import org.example.mycalendarbackend.domain.entity.RepeatingPattern
 import org.example.mycalendarbackend.domain.enums.ActionType
 import org.example.mycalendarbackend.exception.NotAuthorizedException
 import org.example.mycalendarbackend.extension.*
@@ -14,7 +15,9 @@ import org.springframework.http.MediaType.*
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.client.RestClient
+import java.time.ZoneOffset
 import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
 import java.util.*
 
 @Service
@@ -106,6 +109,22 @@ internal class CalendarEventService(
         return repository.save(calendarEvent.copy(repeatingPattern = repeatingPattern).withBase(calendarEvent)).id!!
     }
 
+    fun saveRpWithnewRruleText(rp: RepeatingPattern, startDate: ZonedDateTime) {
+        val (rruleText, rruleString) = restClient.post()
+                .uri("/get-rrule-text-and-string")
+                .contentType(APPLICATION_JSON)
+                .accept(APPLICATION_JSON)
+                .body(rp.toRRuleRequest(startDate))
+                .retrieve()
+                .body(RRuleTextAndString::class.java)!!
+        repeatingPatternService.save(
+            rp.copy(
+                rruleText = rruleText,
+                rruleString = rruleString
+            ).withBase(rp)
+        )
+    }
+
     @Transactional
     fun delete(id: Long, fromDate: ZonedDateTime, actionType: ActionType, order: Int) {
         val event = repository.findById(id).orElseThrow()
@@ -158,7 +177,7 @@ internal class CalendarEventService(
         } else {
             val updatedRepeatingPattern =
                 event.repeatingPattern!!.copy(until = previousOccurrence.plusMinutes(event.duration.toLong())).withBase(event.repeatingPattern)
-            repeatingPatternService.save(updatedRepeatingPattern)
+            saveRpWithnewRruleText(updatedRepeatingPattern, event.startDate)
         }
     }
 
@@ -202,7 +221,7 @@ internal class CalendarEventService(
             val updatedRepeatingPattern = event.repeatingPattern!!.copy(
                 until = previousOccurrence.plusMinutes(event.duration.toLong())
             ).withBase(event.repeatingPattern)
-            repeatingPatternService.save(updatedRepeatingPattern)
+            saveRpWithnewRruleText(updatedRepeatingPattern, event.startDate)
         }
     }
 
@@ -235,7 +254,7 @@ internal class CalendarEventService(
                 val updatedRepeatingPattern = event.repeatingPattern.copy(
                     until = previousOccurrence.plusMinutes(event.duration.toLong())
                 ).withBase(event.repeatingPattern)
-                repeatingPatternService.save(updatedRepeatingPattern)
+                saveRpWithnewRruleText(updatedRepeatingPattern, event.startDate)
             }
         } else {
             save(event.copy(startDate = newFromDate, duration = newDuration).withBase(event))
@@ -298,6 +317,58 @@ internal class CalendarEventService(
             throw NotAuthorizedException("No permission to share specified event.")
         }
         sequenceService.saveSequenceForUser(userId, sequenceId)
+    }
+
+    fun createIcsFileForAuthenticatedUser(): String {
+        val sequences = sequenceService.findAllSequencesForAuthenticatedUser()
+        val events = sequences.flatMap { repository.findAllBySequenceId(it) }
+        val fileStr = createIcsFile(events)
+        return fileStr
+    }
+
+    private fun createIcsFile(events: List<CalendarEvent>): String {
+        val dateTimeFormatter = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss'Z'")
+        val sb = StringBuilder()
+
+        sb.append("BEGIN:VCALENDAR\n")
+        sb.append("VERSION:2.0\n")
+        sb.append("PRODID:-//MyCalendar//EN\n")
+
+        for (event in events) {
+            val start = event.startDate.withZoneSameInstant(ZoneOffset.UTC).format(dateTimeFormatter)
+            val end = event.startDate.plusMinutes(event.duration.toLong()).withZoneSameInstant(ZoneOffset.UTC).format(dateTimeFormatter)
+
+            sb.append("BEGIN:VEVENT\n")
+            sb.append("UID:${UUID.randomUUID()}@mycalendar.com\n")
+            sb.append("DTSTAMP:${event.createdAt!!.withZoneSameInstant(ZoneOffset.UTC).format(dateTimeFormatter)}\n")
+            sb.append("DTSTART:$start\n")
+            sb.append("DTEND:$end\n")
+            sb.append("SUMMARY:${event.title}\n")
+            sb.append("DESCRIPTION:${event.description}\n")
+            //sb.append("SEQUENCE:${event.sequenceId}\n")
+
+            event.repeatingPattern?.let { pattern ->
+                val rrule = extractRruleLine(pattern.rruleString!!)
+                sb.append("$rrule\n")
+            }
+
+            sb.append("END:VEVENT\n")
+        }
+
+        sb.append("END:VCALENDAR\n")
+
+        return sb.toString()
+    }
+
+    fun extractRruleLine(rruleString: String): String {
+        // Split the string by lines
+        val lines = rruleString.split("\n")
+
+        // Find the line that starts with "RRULE:"
+        val rruleLine = lines.find { it.startsWith("RRULE:") }
+
+        // Return the rrule line or throw an error if not found
+        return rruleLine ?: throw IllegalArgumentException("RRULE not found in the string")
     }
 }
 

@@ -7,8 +7,11 @@ import org.example.mycalendarbackend.domain.enums.ActionType
 import org.example.mycalendarbackend.service.CalendarEventInstanceInfo
 import org.example.mycalendarbackend.service.CalendarEventService
 import org.springframework.format.annotation.DateTimeFormat
+import org.springframework.http.HttpHeaders
 import org.springframework.web.bind.annotation.*
 import java.time.ZonedDateTime
+import org.springframework.http.MediaType
+import org.springframework.http.ResponseEntity
 
 @RestController
 @RequestMapping("/api/calendar-events")
@@ -54,5 +57,19 @@ class CalendarEventsController internal constructor(
 
     @PostMapping("/share")
     fun shareEventSequenceWithUser(@RequestBody request: ShareEventRequest) = service.shareEventSequenceWithUser(request)
+
+    @GetMapping("/export")
+    @ResponseBody
+    fun exportCalendar(): ResponseEntity<ByteArray> {
+        val icsData = service.createIcsFileForAuthenticatedUser()
+
+        val headers = HttpHeaders()
+        headers.contentType = MediaType("text", "calendar")
+        headers.set(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"calendar.ics\"")
+
+        return ResponseEntity.ok()
+            .headers(headers)
+            .body(icsData.toByteArray())
+    }
 
 }
