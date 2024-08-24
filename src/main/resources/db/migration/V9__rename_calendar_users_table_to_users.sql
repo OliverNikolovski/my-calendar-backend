@@ -1,0 +1,1 @@
+alter table calendar.calendar_users rename to users;

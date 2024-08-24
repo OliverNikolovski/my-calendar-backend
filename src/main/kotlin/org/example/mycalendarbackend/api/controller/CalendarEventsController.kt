@@ -63,6 +63,9 @@ class CalendarEventsController internal constructor(
     fun updateEventSequenceVisibility(@RequestBody request: EventSequenceVisibilityUpdateRequest) =
         service.updateEventSequenceVisibility(request.sequenceId, request.isPublic)
 
+    @PatchMapping("/update-calendar-visibility")
+    fun updateCalendarVisibility(@RequestParam isPublic: Boolean) = service.updateVisibilityForAllAuthenticatedUserSequences(isPublic)
+
     @GetMapping("/export")
     @ResponseBody
     fun exportCalendar(): ResponseEntity<ByteArray> {

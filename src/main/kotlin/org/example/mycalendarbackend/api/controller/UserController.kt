@@ -20,4 +20,7 @@ class UserController internal constructor(
             n = n
         )
 
+    @GetMapping("/is-calendar-public")
+    fun isCalendarPublic(): Boolean = userService.isAuthenticatedUserCalendarPublic()
+
 }

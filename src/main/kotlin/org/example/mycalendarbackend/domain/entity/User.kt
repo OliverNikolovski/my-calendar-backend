@@ -7,7 +7,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.core.userdetails.UserDetails
 
 @Entity
-@Table(schema = "calendar", name = "calendar_users")
+@Table(schema = "calendar", name = "users")
 data class User(
     @Column(name = "username", nullable = false, unique = true)
     val usernameField: String,
@@ -24,7 +24,10 @@ data class User(
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "user_roles", schema = "calendar", joinColumns = [JoinColumn(name = "user_id")])
     @Column(name = "role")
-    val roles: Set<String> = setOf()
+    val roles: Set<String> = setOf(),
+
+    @Column(name = "public_calendar", nullable = false)
+    val isCalendarPublic: Boolean = false
 ): BaseEntity<Long>(), UserDetails {
 
     override fun getAuthorities(): Set<GrantedAuthority> = roles.map { SimpleGrantedAuthority(it) }.toSet()

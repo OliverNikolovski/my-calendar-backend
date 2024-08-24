@@ -26,7 +26,8 @@ internal class CalendarEventService(
     private val repository: CalendarEventRepository,
     private val restClient: RestClient,
     private val repeatingPatternService: RepeatingPatternService,
-    private val sequenceService: CalendarEventSequenceService
+    private val sequenceService: CalendarEventSequenceService,
+    private val userService: UserService
 ) {
 
     fun generateInstanceForEvents(from: ZonedDateTime): Map<String, List<CalendarEventInstanceInfo>> {
@@ -381,6 +382,13 @@ internal class CalendarEventService(
             throw NotAuthorizedException("No permission to change event visibility.")
         }
         sequenceService.updateEventSequenceVisibility(sequenceId, isPublic)
+    }
+
+    @Transactional
+    fun updateVisibilityForAllAuthenticatedUserSequences(isPublic: Boolean) {
+        val sequences = sequenceService.findAllSequencesForAuthenticatedUser()
+        sequences.forEach { updateEventSequenceVisibility(it, isPublic) }
+        userService.updateCalendarVisibilityForAuthenticatedUser(isPublic)
     }
 }
 
