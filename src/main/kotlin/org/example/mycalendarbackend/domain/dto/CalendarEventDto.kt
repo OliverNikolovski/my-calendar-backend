@@ -17,5 +17,7 @@ data class CalendarEventDto(
 
     val repeatingPattern: RepeatingPatternDto?,
 
-    val sequenceId: String
+    val sequenceId: String,
+
+    val isPublic: Boolean
 )

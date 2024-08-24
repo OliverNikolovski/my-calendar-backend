@@ -1,5 +1,7 @@
 package org.example.mycalendarbackend.service
 
+import org.example.mycalendarbackend.domain.entity.UserSequence
+import org.example.mycalendarbackend.extension.withBase
 import org.springframework.stereotype.Service
 import java.util.*
 
@@ -43,5 +45,22 @@ internal class CalendarEventSequenceService(
         )
 
     fun generateSequenceId(): String = UUID.randomUUID().toString()
+
+    fun findUserSequenceForAuthenticatedUser(sequenceId: String): UserSequence = checkNotNull(
+        userSequenceService.findByUserIdAndSequenceId(
+            userId = userService.getAuthenticatedUserId(),
+            sequenceId = sequenceId
+        )
+    ) { "Event sequence does not exist" }
+
+    fun updateEventSequenceVisibility(sequenceId: String, isPublic: Boolean) {
+        val userSequence = findUserSequenceForAuthenticatedUser(sequenceId)
+        userSequenceService.save(
+            userSequence.copy(isPublic = isPublic).withBase(userSequence)
+        )
+    }
+
+    fun isSequenceForAuthenticatedUserPublic(sequenceId: String): Boolean =
+        findUserSequenceForAuthenticatedUser(sequenceId).isPublic
 
 }

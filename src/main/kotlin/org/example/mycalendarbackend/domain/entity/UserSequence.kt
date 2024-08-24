@@ -11,6 +11,9 @@ data class UserSequence(
     val userId: Long,
 
     @Column(name = "sequence_id", nullable = false)
-    val sequenceId: String
+    val sequenceId: String,
+
+    @Column(name = "is_public", nullable = false)
+    val isPublic: Boolean = false
 
 ) : BaseEntity<Long>()

@@ -5,7 +5,7 @@ import org.example.mycalendarbackend.domain.dto.CalendarEventDto
 import org.example.mycalendarbackend.domain.dto.RRuleRequest
 import org.example.mycalendarbackend.domain.entity.CalendarEvent
 
-fun CalendarEvent.toDto(): CalendarEventDto = CalendarEventDto(
+fun CalendarEvent.toDto(isPublic: Boolean): CalendarEventDto = CalendarEventDto(
     id = id,
     title = title,
     description = description,
@@ -13,7 +13,8 @@ fun CalendarEvent.toDto(): CalendarEventDto = CalendarEventDto(
     startDate = startDate,
     duration = duration,
     repeatingPattern = repeatingPattern?.toDto(),
-    sequenceId = sequenceId
+    sequenceId = sequenceId,
+    isPublic = isPublic
 )
 
 fun CalendarEventDto.toEntity(): CalendarEvent = CalendarEvent(

@@ -2,6 +2,7 @@ package org.example.mycalendarbackend.service
 
 import org.example.mycalendarbackend.api.request.CalendarEventCreationRequest
 import org.example.mycalendarbackend.api.request.CalendarEventUpdateRequest
+import org.example.mycalendarbackend.api.request.EventSequenceVisibilityUpdateRequest
 import org.example.mycalendarbackend.api.request.ShareEventRequest
 import org.example.mycalendarbackend.domain.dto.*
 import org.example.mycalendarbackend.domain.entity.CalendarEvent
@@ -48,10 +49,13 @@ internal class CalendarEventService(
         val requests = events.map { it.toRRuleRequest() }
         val response = generateEventInstances(requests)
 
+
         // Process the response and map to CalendarEventInstanceInfo
         val eventInstances = events.zip(response) { event, dates ->
+            // TODO: refactor database call out of loop (+ optimize for events in the same sequence, no need to call db again)
+            val isPublic = sequenceService.isSequenceForAuthenticatedUserPublic(event.sequenceId)
             dates.mapIndexed { index, date ->
-                CalendarEventInstanceInfo(event.id!!, date, event.duration, event.toDto(), index)
+                CalendarEventInstanceInfo(event.id!!, date, event.duration, event.toDto(isPublic), index)
             }
         }
 
@@ -63,6 +67,7 @@ internal class CalendarEventService(
     // this is used only after event creation, to get the instances of the created event
     fun generateInstancesForEvent(eventId: Long): Map<String, List<CalendarEventInstanceInfo>> {
         val event = repository.findById(eventId).orElseThrow()
+        val isPublic = sequenceService.isSequenceForAuthenticatedUserPublic(event.sequenceId)
         val request = event.toRRuleRequest()
         val instances = restClient.post()
             .uri("/generate-event-instances-for-event")
@@ -76,7 +81,7 @@ internal class CalendarEventService(
                     eventId = eventId,
                     date = instance.value,
                     duration = event.duration,
-                    event = event.toDto(),
+                    event = event.toDto(isPublic),
                     order = instance.index
                 )
             )
@@ -369,6 +374,13 @@ internal class CalendarEventService(
 
         // Return the rrule line or throw an error if not found
         return rruleLine ?: throw IllegalArgumentException("RRULE not found in the string")
+    }
+
+    fun updateEventSequenceVisibility(sequenceId: String, isPublic: Boolean) {
+        if (!sequenceService.isAuthenticatedUserOwnerOfSequence(sequenceId)) {
+            throw NotAuthorizedException("No permission to change event visibility.")
+        }
+        sequenceService.updateEventSequenceVisibility(sequenceId, isPublic)
     }
 }
 

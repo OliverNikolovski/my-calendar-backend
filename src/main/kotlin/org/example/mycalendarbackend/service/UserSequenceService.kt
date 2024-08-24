@@ -12,11 +12,16 @@ class UserSequenceService(
     fun findAllSequencesByUserId(userId: Long): List<String> =
         repository.findAllByUserId(userId).map { it.sequenceId }
 
+    fun findByUserIdAndSequenceId(userId: Long, sequenceId: String): UserSequence? =
+        repository.findByUserIdAndSequenceId(userId, sequenceId)
+
     fun save(userId: Long, sequenceId: String) = repository.save(
         UserSequence(
             userId = userId,
             sequenceId = sequenceId
         )
     )
+
+    fun save(userSequence: UserSequence) = repository.save(userSequence)
 
 }
