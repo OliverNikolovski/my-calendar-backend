@@ -12,6 +12,10 @@ class UserSequenceService(
     fun findAllSequencesByUserId(userId: Long): List<String> =
         repository.findAllByUserId(userId).map { it.sequenceId }
 
+    fun findAllPublicSequencesByUserId(userId: Long): List<String> =
+        repository.findAllByUserIdAndIsPublic(userId, true).map { it.sequenceId }
+
+
     fun findByUserIdAndSequenceId(userId: Long, sequenceId: String): UserSequence? =
         repository.findByUserIdAndSequenceId(userId, sequenceId)
 

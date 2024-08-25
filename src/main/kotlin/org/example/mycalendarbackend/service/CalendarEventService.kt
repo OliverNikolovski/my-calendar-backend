@@ -34,12 +34,16 @@ internal class CalendarEventService(
         return createEventInstancesMapFromEvents(events)
     }
 
-    fun generateEventInstancesForUser(userId: Long?): Map<String, List<CalendarEventInstanceInfo>> {
-        val userSequences = userId?.let {
-            sequenceService.findAllSequencesForUser(userId)
-        } ?: sequenceService.findAllSequencesForAuthenticatedUser()
+    fun generateEventInstancesForAuthenticatedUser(): Map<String, List<CalendarEventInstanceInfo>> {
+        val userSequences = sequenceService.findAllSequencesForAuthenticatedUser()
         val userEvents = repository.findAllBySequenceIdIn(userSequences)
         return createEventInstancesMapFromEvents(userEvents)
+    }
+
+    fun generateEventInstancesForUser(userId: Long): Map<String, List<CalendarEventInstanceInfo>> {
+        val userSequences = sequenceService.findAllPublicSequencesForUser(userId)
+        val userEvents = repository.findAllBySequenceIdIn(userSequences)
+        return createEventInstancesMapFromEvents(userEvents, false)
     }
 
     fun generateInstancesForSequence(sequenceId: String): Map<String, List<CalendarEventInstanceInfo>> {
@@ -47,7 +51,10 @@ internal class CalendarEventService(
         return createEventInstancesMapFromEvents(events)
     }
 
-    private fun createEventInstancesMapFromEvents(events: List<CalendarEvent>): Map<String, List<CalendarEventInstanceInfo>> {
+    private fun createEventInstancesMapFromEvents(
+        events: List<CalendarEvent>,
+        forAuthenticatedUser: Boolean = true
+    ): Map<String, List<CalendarEventInstanceInfo>> {
         val requests = events.map { it.toRRuleRequest() }
         val response = generateEventInstances(requests)
 
@@ -55,7 +62,9 @@ internal class CalendarEventService(
         // Process the response and map to CalendarEventInstanceInfo
         val eventInstances = events.zip(response) { event, dates ->
             // TODO: refactor database call out of loop (+ optimize for events in the same sequence, no need to call db again)
-            val isPublic = sequenceService.isSequenceForAuthenticatedUserPublic(event.sequenceId)
+            val isPublic =
+                if (forAuthenticatedUser) sequenceService.isSequenceForAuthenticatedUserPublic(event.sequenceId)
+                else null
             dates.mapIndexed { index, date ->
                 CalendarEventInstanceInfo(event.id!!, date, event.duration, event.toDto(isPublic), index)
             }

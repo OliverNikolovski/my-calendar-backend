@@ -19,5 +19,5 @@ data class CalendarEventDto(
 
     val sequenceId: String,
 
-    val isPublic: Boolean
+    val isPublic: Boolean?
 )

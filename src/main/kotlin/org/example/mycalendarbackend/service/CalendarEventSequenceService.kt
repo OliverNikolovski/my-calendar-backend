@@ -14,6 +14,8 @@ internal class CalendarEventSequenceService(
 
     fun findAllSequencesForUser(userId: Long) = userSequenceService.findAllSequencesByUserId(userId)
 
+    fun findAllPublicSequencesForUser(userId: Long) = userSequenceService.findAllPublicSequencesByUserId(userId)
+
     fun findAllSequencesForAuthenticatedUser() = findAllSequencesForUser(
         userService.getAuthenticatedUserId()
     )

@@ -31,10 +31,13 @@ class CalendarEventsController internal constructor(
                                    from: ZonedDateTime): Map<String, List<CalendarEventInstanceInfo>> =
         service.generateInstanceForEvents(from)
 
-    @GetMapping("/generate-calendar-event-instances-for-user")
-    fun generateEventInstancesForAuthenticatedUser(
-        @RequestParam(required = false) userId: Long?
-    ): Map<String, List<CalendarEventInstanceInfo>> = service.generateEventInstancesForUser(userId)
+    @GetMapping("/generate-calendar-event-instances-for-authenticated-user")
+    fun generateEventInstancesForAuthenticatedUser(): Map<String, List<CalendarEventInstanceInfo>> =
+        service.generateEventInstancesForAuthenticatedUser()
+
+    @GetMapping("/generate-calendar-event-instances-for-user/{userId}")
+    fun generateEventInstancesForUser(@PathVariable userId: Long): Map<String, List<CalendarEventInstanceInfo>> =
+        service.generateEventInstancesForUser(userId)
 
     @GetMapping("/generate-instances-for-event-id")
     fun generateInstancesForEventId(@RequestParam eventId: Long): Map<String, List<CalendarEventInstanceInfo>> =

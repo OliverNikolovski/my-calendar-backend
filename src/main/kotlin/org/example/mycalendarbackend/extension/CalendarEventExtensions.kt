@@ -5,7 +5,7 @@ import org.example.mycalendarbackend.domain.dto.CalendarEventDto
 import org.example.mycalendarbackend.domain.dto.RRuleRequest
 import org.example.mycalendarbackend.domain.entity.CalendarEvent
 
-fun CalendarEvent.toDto(isPublic: Boolean): CalendarEventDto = CalendarEventDto(
+fun CalendarEvent.toDto(isPublic: Boolean? = null): CalendarEventDto = CalendarEventDto(
     id = id,
     title = title,
     description = description,

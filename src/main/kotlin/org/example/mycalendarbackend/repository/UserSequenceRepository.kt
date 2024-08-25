@@ -10,4 +10,6 @@ interface UserSequenceRepository : JpaRepository<UserSequence, Long>, JpaSpecifi
 
     fun findByUserIdAndSequenceId(userId: Long, sequenceId: String): UserSequence?
 
+    fun findAllByUserIdAndIsPublic(userId: Long, public: Boolean): List<UserSequence>
+
 }
