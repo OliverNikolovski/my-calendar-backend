@@ -2,7 +2,6 @@ package org.example.mycalendarbackend.service
 
 import org.example.mycalendarbackend.api.request.CalendarEventCreationRequest
 import org.example.mycalendarbackend.api.request.CalendarEventUpdateRequest
-import org.example.mycalendarbackend.api.request.EventSequenceVisibilityUpdateRequest
 import org.example.mycalendarbackend.api.request.ShareEventRequest
 import org.example.mycalendarbackend.domain.dto.*
 import org.example.mycalendarbackend.domain.entity.CalendarEvent
@@ -35,8 +34,10 @@ internal class CalendarEventService(
         return createEventInstancesMapFromEvents(events)
     }
 
-    fun generateEventInstancesForAuthenticatedUser(): Map<String, List<CalendarEventInstanceInfo>> {
-        val userSequences = sequenceService.findAllSequencesForAuthenticatedUser()
+    fun generateEventInstancesForUser(userId: Long?): Map<String, List<CalendarEventInstanceInfo>> {
+        val userSequences = userId?.let {
+            sequenceService.findAllSequencesForUser(userId)
+        } ?: sequenceService.findAllSequencesForAuthenticatedUser()
         val userEvents = repository.findAllBySequenceIdIn(userSequences)
         return createEventInstancesMapFromEvents(userEvents)
     }

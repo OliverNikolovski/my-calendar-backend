@@ -32,8 +32,9 @@ class CalendarEventsController internal constructor(
         service.generateInstanceForEvents(from)
 
     @GetMapping("/generate-calendar-event-instances-for-user")
-    fun generateEventInstancesForAuthenticatedUser(): Map<String, List<CalendarEventInstanceInfo>> =
-        service.generateEventInstancesForAuthenticatedUser()
+    fun generateEventInstancesForAuthenticatedUser(
+        @RequestParam(required = false) userId: Long?
+    ): Map<String, List<CalendarEventInstanceInfo>> = service.generateEventInstancesForUser(userId)
 
     @GetMapping("/generate-instances-for-event-id")
     fun generateInstancesForEventId(@RequestParam eventId: Long): Map<String, List<CalendarEventInstanceInfo>> =
