@@ -13,6 +13,17 @@ spring:
     enabled: true
     locations: classpath:db/migration
     schemas: calendar
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MY_CALENDAR_EMAIL}
+    password: ${MY_CALENDAR_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
 logging:
   level:
     org.springframework.security: TRACE
