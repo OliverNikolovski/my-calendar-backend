@@ -10,6 +10,8 @@ fun ZonedDateTime.atStartOfDay(): ZonedDateTime =
 fun ZonedDateTime.endOfPreviousDay(): ZonedDateTime =
     atStartOfDay().minusSeconds(1)
 
+fun ZonedDateTime.tomorrowMidnight(): ZonedDateTime = plusOneDay().atStartOfDay()
+
 fun ZonedDateTime.toDateTime(): DateTime = DateTime(
     year = year,
     month = monthValue,

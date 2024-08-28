@@ -9,6 +9,8 @@ internal interface CalendarEventRepository : JpaRepository<CalendarEvent, Long>,
 
     fun findAllByStartDateGreaterThanEqual(from: ZonedDateTime): List<CalendarEvent>
 
+    fun findAllByStartDateLessThan(targetDate: ZonedDateTime): List<CalendarEvent>
+
     fun findAllBySequenceId(sequenceId: String): List<CalendarEvent>
 
     fun findAllBySequenceIdIn(sequences: Collection<String>): List<CalendarEvent>

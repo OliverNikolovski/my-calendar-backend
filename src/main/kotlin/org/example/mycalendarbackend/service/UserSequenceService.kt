@@ -1,8 +1,10 @@
 package org.example.mycalendarbackend.service
 
 import org.example.mycalendarbackend.domain.entity.UserSequence
+import org.example.mycalendarbackend.extension.withBase
 import org.example.mycalendarbackend.repository.UserSequenceRepository
 import org.springframework.stereotype.Service
+import kotlin.math.min
 
 @Service
 class UserSequenceService(
@@ -27,5 +29,10 @@ class UserSequenceService(
     )
 
     fun save(userSequence: UserSequence) = repository.save(userSequence)
+
+    fun saveNotificationConfiguration(userSequence: UserSequence, minutes: Int) =
+        repository.save(
+            userSequence.copy(notifyMinutesBefore = minutes).withBase(userSequence)
+        )
 
 }

@@ -14,6 +14,9 @@ data class UserSequence(
     val sequenceId: String,
 
     @Column(name = "is_public", nullable = false)
-    val isPublic: Boolean = false
+    val isPublic: Boolean = false,
+
+    @Column(name = "notify_minutes_before")
+    val notifyMinutesBefore: Int? = null
 
 ) : BaseEntity<Long>()

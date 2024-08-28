@@ -78,9 +78,16 @@ app.post('/calculate-previous-execution', (req, res) => {
 });
 
 app.post('/generate-instances-for-events', (req, res) => {
-    console.log('body:',req.body);
     const rrule = createRRuleFromRequest(req.body as RRuleRequest);
     res.send(rrule.all());
+});
+
+app.post('/get-instance-for-event-on-day', (req, res) => {
+   const rrule = createRRuleFromRequest(req.body.rruleRequest as RRuleRequest);
+   const targetDateTime = req.body.targetDateTime as DateTime;
+   const { year, month, day } = targetDateTime;
+   const date = rrule.between(datetime(year, month, day, 0, 0, 0), datetime(year, month, day, 23, 59, 59), true)[0] ?? null;
+   res.send(date);
 });
 
 app.listen(port, () => {

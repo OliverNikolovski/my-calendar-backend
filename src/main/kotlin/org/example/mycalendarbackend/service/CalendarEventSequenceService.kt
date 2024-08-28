@@ -1,6 +1,8 @@
 package org.example.mycalendarbackend.service
 
+import org.example.mycalendarbackend.domain.entity.CalendarEvent
 import org.example.mycalendarbackend.domain.entity.UserSequence
+import org.example.mycalendarbackend.exception.EntityNotFoundException
 import org.example.mycalendarbackend.extension.withBase
 import org.springframework.stereotype.Service
 import java.util.*
@@ -64,5 +66,13 @@ internal class CalendarEventSequenceService(
 
     fun isSequenceForAuthenticatedUserPublic(sequenceId: String): Boolean =
         findUserSequenceForAuthenticatedUser(sequenceId).isPublic
+
+    fun saveNotificationConfigForEvent(event: CalendarEvent, minutes: Int) {
+        val userSequence = userSequenceService.findByUserIdAndSequenceId(
+            userId = userService.getAuthenticatedUserId(),
+            sequenceId = event.sequenceId
+        ) ?: throw EntityNotFoundException("Event sequence does not exist for authenticated user")
+        userSequenceService.saveNotificationConfiguration(userSequence, minutes)
+    }
 
 }

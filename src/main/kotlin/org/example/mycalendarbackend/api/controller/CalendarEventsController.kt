@@ -84,4 +84,10 @@ class CalendarEventsController internal constructor(
             .body(icsData.toByteArray())
     }
 
+    @PatchMapping("/add-or-update-email-notification-config")
+    fun addOrUpdateEmailNotificationForEvent(
+        @RequestParam eventId: Long,
+        @RequestParam minutes: Int
+    ) = service.addOrUpdateEmailNotificationForEvent(eventId, minutes)
+
 }

@@ -7,6 +7,7 @@ import org.example.mycalendarbackend.domain.dto.*
 import org.example.mycalendarbackend.domain.entity.CalendarEvent
 import org.example.mycalendarbackend.domain.entity.RepeatingPattern
 import org.example.mycalendarbackend.domain.enums.ActionType
+import org.example.mycalendarbackend.exception.EntityNotFoundException
 import org.example.mycalendarbackend.exception.NotAuthorizedException
 import org.example.mycalendarbackend.extension.*
 import org.example.mycalendarbackend.repository.CalendarEventRepository
@@ -29,8 +30,12 @@ internal class CalendarEventService(
     private val userService: UserService
 ) {
 
+    fun findAllByStartDateLessThan(targetDate: ZonedDateTime) = repository.findAllByStartDateLessThan(targetDate)
+
+    fun findAllByStartDateGreaterThanEqual(from: ZonedDateTime) = repository.findAllByStartDateGreaterThanEqual(from)
+
     fun generateInstanceForEvents(from: ZonedDateTime): Map<String, List<CalendarEventInstanceInfo>> {
-        val events = repository.findAllByStartDateGreaterThanEqual(from)
+        val events = findAllByStartDateGreaterThanEqual(from)
         return createEventInstancesMapFromEvents(events)
     }
 
@@ -399,6 +404,11 @@ internal class CalendarEventService(
         val sequences = sequenceService.findAllSequencesForAuthenticatedUser()
         sequences.forEach { updateEventSequenceVisibility(it, isPublic) }
         userService.updateCalendarVisibilityForAuthenticatedUser(isPublic)
+    }
+
+    fun addOrUpdateEmailNotificationForEvent(eventId: Long, minutes: Int) {
+        val event = repository.findById(eventId).orElseThrow { EntityNotFoundException("Event does not exist") }
+        sequenceService.saveNotificationConfigForEvent(event, minutes)
     }
 }
 
