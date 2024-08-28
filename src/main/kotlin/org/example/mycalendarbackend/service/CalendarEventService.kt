@@ -7,7 +7,7 @@ import org.example.mycalendarbackend.domain.dto.*
 import org.example.mycalendarbackend.domain.entity.CalendarEvent
 import org.example.mycalendarbackend.domain.entity.RepeatingPattern
 import org.example.mycalendarbackend.domain.enums.ActionType
-import org.example.mycalendarbackend.exception.EntityNotFoundException
+import org.example.mycalendarbackend.exception.CalendarEntityNotFoundException
 import org.example.mycalendarbackend.exception.NotAuthorizedException
 import org.example.mycalendarbackend.extension.*
 import org.example.mycalendarbackend.repository.CalendarEventRepository
@@ -407,7 +407,7 @@ internal class CalendarEventService(
     }
 
     fun addOrUpdateEmailNotificationForEvent(eventId: Long, minutes: Int) {
-        val event = repository.findById(eventId).orElseThrow { EntityNotFoundException("Event does not exist") }
+        val event = repository.findById(eventId).orElseThrow { CalendarEntityNotFoundException("Event does not exist") }
         sequenceService.saveNotificationConfigForEvent(event, minutes)
     }
 }
