@@ -1,6 +1,7 @@
 package org.example.mycalendarbackend.service
 
 import org.example.mycalendarbackend.domain.entity.User
+import org.example.mycalendarbackend.domain.projection.UserProjection
 import org.example.mycalendarbackend.extension.toSelectOptionList
 import org.example.mycalendarbackend.extension.withBase
 import org.example.mycalendarbackend.repository.UserRepository
@@ -10,7 +11,6 @@ import org.springframework.security.core.userdetails.UserDetails
 import org.springframework.security.core.userdetails.UserDetailsService
 import org.springframework.security.core.userdetails.UsernameNotFoundException
 import org.springframework.stereotype.Service
-
 @Service
 internal class UserService(
     private val userRepository: UserRepository
@@ -18,6 +18,10 @@ internal class UserService(
 
     override fun loadUserByUsername(username: String): UserDetails =
         userRepository.findByUsernameField(username) ?: throw UsernameNotFoundException("Username $username does not exist.")
+
+    fun getUserProjectionByUserId(userId: Long): UserProjection = checkNotNull(
+        userRepository.findById(userId, UserProjection::class.java)
+    ) { "User with id $userId does not exist" }
 
     fun save(user: User) = userRepository.save(user)
 
@@ -42,3 +46,4 @@ internal class UserService(
     fun isAuthenticatedUserCalendarPublic(): Boolean = getAuthenticatedUser().isCalendarPublic
 
 }
+

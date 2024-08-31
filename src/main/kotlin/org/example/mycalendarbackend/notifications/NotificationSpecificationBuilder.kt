@@ -14,4 +14,7 @@ class NotificationSpecificationBuilder(
             .and(specification.scheduledTimeBetween(from, to))
             .and(specification.joinFetchEvent())
 
+    fun pendingNotificationsJoinFetchEvent(): Specification<ScheduledNotification> =
+        Specification.where(specification.hasPendingStatus()).and(specification.joinFetchEvent())
+
 }

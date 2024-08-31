@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event Reminder</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6;">
+    <p>Dear {{userName}},</p>
+
+    <p>This is a friendly reminder that your scheduled event, "<strong>{{eventTitle}}</strong>," is starting in <strong>{{minutesBefore}}</strong> minutes.</p>
+
+    <h3 style="margin-bottom: 0;">Event Details:</h3>
+    <ul style="list-style-type: none; padding-left: 0;">
+        <li><strong>Date:</strong> {{eventDate}}</li>
+        <li><strong>Time:</strong> {{eventTime}}</li>
+        <li><strong>Description:</strong> {{eventDescription}}</li>
+    </ul>
+
+    <p>Please ensure you're prepared and have everything you need for the event.</p>
+
+    <p>If you need to make any changes or cancel the event, you can do so directly in your calendar app.</p>
+
+    <p>Thank you,<br>
+    <strong>MyCalendar app</strong></p>
+</body>
+</html>
