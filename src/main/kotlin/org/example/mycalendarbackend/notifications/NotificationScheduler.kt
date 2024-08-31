@@ -1,10 +1,10 @@
 package org.example.mycalendarbackend.notifications
 
 import org.example.mycalendarbackend.domain.dto.DateTime
-import org.example.mycalendarbackend.extension.atStartOfDay
 import org.example.mycalendarbackend.extension.toRRuleRequest
 import org.example.mycalendarbackend.extension.tomorrowMidnight
 import org.example.mycalendarbackend.service.CalendarEventService
+import org.example.mycalendarbackend.service.UserSequenceService
 import org.springframework.http.MediaType
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
@@ -15,6 +15,7 @@ import java.time.ZonedDateTime
 internal class NotificationScheduler(
     private val notificationService: NotificationService,
     private val eventService: CalendarEventService,
+    private val userSequenceService: UserSequenceService,
     private val restClient: RestClient
 ) {
 
@@ -35,8 +36,10 @@ internal class NotificationScheduler(
             }
         }
         filteredEvents.forEach { event ->
+            val userSequences = userSequenceService.findAllBySequenceId(event.sequenceId)
+                .filter { it.notifyMinutesBefore != null }
             val date = restClient.post()
-                .uri("/calculate-previous-execution")
+                .uri("/get-instance-for-event-on-day")
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(
                     mapOf(
@@ -49,14 +52,23 @@ internal class NotificationScheduler(
                     )
                 ).retrieve()
                 .body(ZonedDateTime::class.java)
-            date?.run {
-                notificationService.save(
-                    scheduledTime = this,
-                    event = event
-                )
+            if (date != null) {
+                userSequences.forEach {
+                    notificationService.save(
+                        scheduledTime = date.minusMinutes(it.notifyMinutesBefore!!.toLong()),
+                        event = event,
+                        receiverId = it.userId
+                    )
+                }
             }
         }
-
     }
+
+//    @EventListener(ApplicationReadyEvent::class)
+//    @Async
+//    fun execute() {
+//        Thread.sleep(5000)
+//        scheduleNotifications()
+//    }
 
 }

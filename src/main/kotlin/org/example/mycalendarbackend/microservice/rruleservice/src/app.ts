@@ -83,11 +83,11 @@ app.post('/generate-instances-for-events', (req, res) => {
 });
 
 app.post('/get-instance-for-event-on-day', (req, res) => {
-   const rrule = createRRuleFromRequest(req.body.rruleRequest as RRuleRequest);
-   const targetDateTime = req.body.targetDateTime as DateTime;
-   const { year, month, day } = targetDateTime;
-   const date = rrule.between(datetime(year, month, day, 0, 0, 0), datetime(year, month, day, 23, 59, 59), true)[0] ?? null;
-   res.send(date);
+    const rrule = createRRuleFromRequest(req.body.rruleRequest as RRuleRequest);
+    const targetDateTime = req.body.date as DateTime;
+    const {year, month, day} = targetDateTime;
+    const date = rrule.between(datetime(year, month, day, 0, 0, 0), datetime(year, month, day, 23, 59, 59), true)[0] ?? null;
+    res.send(date);
 });
 
 app.listen(port, () => {

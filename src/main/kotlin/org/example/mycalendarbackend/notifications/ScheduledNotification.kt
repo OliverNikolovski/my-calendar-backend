@@ -4,7 +4,9 @@ import jakarta.persistence.*
 import org.example.mycalendarbackend.domain.base.BaseEntity
 import org.example.mycalendarbackend.domain.entity.CalendarEvent
 import org.hibernate.annotations.JdbcType
+import org.hibernate.annotations.JdbcTypeCode
 import org.hibernate.dialect.PostgreSQLEnumJdbcType
+import org.hibernate.type.SqlTypes
 import java.time.ZonedDateTime
 
 enum class ScheduledNotificationStatus {
@@ -18,12 +20,21 @@ data class ScheduledNotification(
     @Column(name = "scheduled_time", nullable = false)
     val scheduledTime: ZonedDateTime,
 
-    @Column(name = "event_id", nullable = false)
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "event_id", nullable = false)
+    @ManyToOne(fetch = FetchType.EAGER, optional = false)
     val event: CalendarEvent,
 
-    @Enumerated
+//    @ManyToOne(fetch = FetchType.EAGER, optional = false)
+//    @JoinColumn(name = "receiver_id", nullable = false)
+//    val receiver: User,
+
+    @Column(name = "receiver_id", nullable = false)
+    val receiverId: Long,
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", columnDefinition = "\"calendar\".\"scheduled_notification_status\"")
     @JdbcType(PostgreSQLEnumJdbcType::class)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     val status: ScheduledNotificationStatus
 
 ) : BaseEntity<Long>()
