@@ -21,7 +21,7 @@ data class ScheduledNotification(
     val scheduledTime: ZonedDateTime,
 
     @JoinColumn(name = "event_id", nullable = false)
-    @ManyToOne(fetch = FetchType.EAGER, optional = false)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     val event: CalendarEvent,
 
 //    @ManyToOne(fetch = FetchType.EAGER, optional = false)

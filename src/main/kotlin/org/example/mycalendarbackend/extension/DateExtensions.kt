@@ -25,3 +25,24 @@ fun ZonedDateTime.plusOneDay(): ZonedDateTime = plusDays(1)
 
 fun ZonedDateTime.withTimeFrom(other: ZonedDateTime): ZonedDateTime =
     withHour(other.hour).withMinute(other.minute).withSecond(other.second).withNano(other.nano)
+
+fun ZonedDateTime.isEqualIgnoreSeconds(other: ZonedDateTime): Boolean =
+    year == other.year && month == other.month && dayOfMonth == other.dayOfMonth && hour == other.hour && minute == other.minute
+
+fun ZonedDateTime.isAfterOrEqualIgnoreSeconds(other: ZonedDateTime): Boolean {
+    val thisDateTransformed = this.withSecond(0).withNano(0)
+    val otherDateTransformed = other.withSecond(0).withNano(0)
+    return thisDateTransformed.isEqual(otherDateTransformed) || thisDateTransformed.isAfter(otherDateTransformed)
+}
+
+fun ZonedDateTime.isBeforeOrEqualIgnoreSeconds(other: ZonedDateTime): Boolean {
+    val thisDateTransformed = this.withSecond(0).withNano(0)
+    val otherDateTransformed = other.withSecond(0).withNano(0)
+    return thisDateTransformed.isEqual(otherDateTransformed) || thisDateTransformed.isBefore(otherDateTransformed)
+}
+
+fun ZonedDateTime.withYearMonthAndDayFrom(other: ZonedDateTime) =
+    withYear(other.year).withMonth(other.monthValue).withDayOfMonth(other.dayOfMonth)
+
+fun ZonedDateTime.withCurrentYearMonthAndDay() = withYearMonthAndDayFrom(ZonedDateTime.now())
+

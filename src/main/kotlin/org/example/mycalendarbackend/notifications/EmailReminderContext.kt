@@ -7,5 +7,7 @@ data class EmailReminderContext(
     val userEmail: String,
     val eventTitle: String,
     val eventDescription: String,
-    val eventStart: ZonedDateTime
+    val minutesBefore: Long,
+    val eventDate: String,
+    val eventTime: String
 )
