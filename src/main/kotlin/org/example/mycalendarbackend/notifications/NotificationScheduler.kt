@@ -1,6 +1,7 @@
 package org.example.mycalendarbackend.notifications
 
 import org.example.mycalendarbackend.domain.dto.DateTime
+import org.example.mycalendarbackend.domain.entity.CalendarEvent
 import org.example.mycalendarbackend.extension.toRRuleRequest
 import org.example.mycalendarbackend.extension.tomorrowMidnight
 import org.example.mycalendarbackend.service.CalendarEventService
@@ -35,7 +36,15 @@ internal class NotificationScheduler(
                 false
             }
         }
-        filteredEvents.forEach { event ->
+        scheduleNotificationsForEvents(filteredEvents, now)
+    }
+
+    fun scheduleNotificationsForEventManually(event: CalendarEvent) {
+        scheduleNotificationsForEvents(listOf(event), ZonedDateTime.now())
+    }
+
+    private fun scheduleNotificationsForEvents(events: List<CalendarEvent>, onDate: ZonedDateTime) {
+        events.forEach { event ->
             val userSequences = userSequenceService.findAllBySequenceId(event.sequenceId)
                 .filter { it.notifyMinutesBefore != null }
             val date = restClient.post()
@@ -45,9 +54,9 @@ internal class NotificationScheduler(
                     mapOf(
                         "rruleRequest" to event.toRRuleRequest(),
                         "date" to DateTime(
-                            year = now.year,
-                            month = now.monthValue,
-                            day = now.dayOfMonth
+                            year = onDate.year,
+                            month = onDate.monthValue,
+                            day = onDate.dayOfMonth
                         )
                     )
                 ).retrieve()

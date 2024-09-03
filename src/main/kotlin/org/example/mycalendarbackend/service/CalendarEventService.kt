@@ -7,10 +7,13 @@ import org.example.mycalendarbackend.domain.dto.*
 import org.example.mycalendarbackend.domain.entity.CalendarEvent
 import org.example.mycalendarbackend.domain.entity.RepeatingPattern
 import org.example.mycalendarbackend.domain.enums.ActionType
+import org.example.mycalendarbackend.events.EmailNotificationAddedOrUpdated
 import org.example.mycalendarbackend.exception.CalendarEntityNotFoundException
 import org.example.mycalendarbackend.exception.NotAuthorizedException
 import org.example.mycalendarbackend.extension.*
+import org.example.mycalendarbackend.notifications.NotificationScheduler
 import org.example.mycalendarbackend.repository.CalendarEventRepository
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.core.ParameterizedTypeReference
 import org.springframework.http.MediaType.*
 import org.springframework.stereotype.Service
@@ -27,7 +30,8 @@ internal class CalendarEventService(
     private val restClient: RestClient,
     private val repeatingPatternService: RepeatingPatternService,
     private val sequenceService: CalendarEventSequenceService,
-    private val userService: UserService
+    private val userService: UserService,
+    private val eventPublisher: ApplicationEventPublisher
 ) {
 
     fun findAllByStartDateLessThan(targetDate: ZonedDateTime) = repository.findAllByStartDateLessThan(targetDate)
@@ -406,9 +410,15 @@ internal class CalendarEventService(
         userService.updateCalendarVisibilityForAuthenticatedUser(isPublic)
     }
 
+    @Transactional
     fun addOrUpdateEmailNotificationForEvent(eventId: Long, minutes: Int) {
         val event = repository.findById(eventId).orElseThrow { CalendarEntityNotFoundException("Event does not exist") }
         sequenceService.saveNotificationConfigForEvent(event, minutes)
+        if (!event.startDate.isInPastComparingTimeOnly()) {
+            eventPublisher.publishEvent(
+                EmailNotificationAddedOrUpdated(event = event, minutes = minutes)
+            )
+        }
     }
 }
 

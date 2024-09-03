@@ -41,6 +41,12 @@ fun ZonedDateTime.isBeforeOrEqualIgnoreSeconds(other: ZonedDateTime): Boolean {
     return thisDateTransformed.isEqual(otherDateTransformed) || thisDateTransformed.isBefore(otherDateTransformed)
 }
 
+fun ZonedDateTime.isInPastComparingTimeOnly(): Boolean {
+    val currentTime = LocalTime.now(this.zone)
+    val givenTime = this.toLocalTime()
+    return givenTime.isBefore(currentTime)
+}
+
 fun ZonedDateTime.withYearMonthAndDayFrom(other: ZonedDateTime) =
     withYear(other.year).withMonth(other.monthValue).withDayOfMonth(other.dayOfMonth)
 
