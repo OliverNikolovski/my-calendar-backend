@@ -1,5 +1,6 @@
 package org.example.mycalendarbackend.service
 
+import org.example.mycalendarbackend.domain.entity.User
 import org.example.mycalendarbackend.domain.entity.UserSequence
 import org.example.mycalendarbackend.extension.withBase
 import org.example.mycalendarbackend.repository.UserSequenceRepository
@@ -12,7 +13,10 @@ class UserSequenceService(
 ) {
 
     fun findAllSequencesByUserId(userId: Long): List<String> =
-        repository.findAllByUserId(userId).map { it.sequenceId }
+        repository.findAllByUserId(userId, UserSequence::class.java).map { it.sequenceId }
+
+    fun <T> findAllSequencesByUserId(userId: Long, returnType: Class<T>): List<T> =
+        repository.findAllByUserId(userId, returnType)
 
     fun findAllBySequenceId(sequenceId: String): List<UserSequence> = repository.findAllBySequenceId(sequenceId)
 

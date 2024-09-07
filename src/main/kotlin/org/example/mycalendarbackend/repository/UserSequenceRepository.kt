@@ -6,7 +6,7 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor
 
 interface UserSequenceRepository : JpaRepository<UserSequence, Long>, JpaSpecificationExecutor<UserSequence> {
 
-    fun findAllByUserId(userId: Long): List<UserSequence>
+    fun <T> findAllByUserId(userId: Long, type: Class<T>): List<T>
 
     fun findAllBySequenceId(sequenceId: String): List<UserSequence>
 

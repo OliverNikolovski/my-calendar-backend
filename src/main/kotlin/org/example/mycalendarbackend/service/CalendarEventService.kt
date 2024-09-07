@@ -11,7 +11,6 @@ import org.example.mycalendarbackend.events.EmailNotificationAddedOrUpdated
 import org.example.mycalendarbackend.exception.CalendarEntityNotFoundException
 import org.example.mycalendarbackend.exception.NotAuthorizedException
 import org.example.mycalendarbackend.extension.*
-import org.example.mycalendarbackend.notifications.NotificationScheduler
 import org.example.mycalendarbackend.repository.CalendarEventRepository
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.core.ParameterizedTypeReference
@@ -29,7 +28,7 @@ internal class CalendarEventService(
     private val repository: CalendarEventRepository,
     private val restClient: RestClient,
     private val repeatingPatternService: RepeatingPatternService,
-    private val sequenceService: CalendarEventSequenceService,
+    private val sequenceService: SequenceService,
     private val userService: UserService,
     private val eventPublisher: ApplicationEventPublisher
 ) {
@@ -62,20 +61,26 @@ internal class CalendarEventService(
 
     private fun createEventInstancesMapFromEvents(
         events: List<CalendarEvent>,
-        forAuthenticatedUser: Boolean = true
+        includeVisibility: Boolean = true
     ): Map<String, List<CalendarEventInstanceInfo>> {
         val requests = events.map { it.toRRuleRequest() }
         val response = generateEventInstances(requests)
 
+        val userSequencesVisibilityMap =
+            if (includeVisibility)
+                sequenceService.getUserSequencesVisibilityMap(userService.getAuthenticatedUserId())
+            else emptyMap()
 
         // Process the response and map to CalendarEventInstanceInfo
         val eventInstances = events.zip(response) { event, dates ->
-            // TODO: refactor database call out of loop (+ optimize for events in the same sequence, no need to call db again)
-            val isPublic =
-                if (forAuthenticatedUser) sequenceService.isSequenceForAuthenticatedUserPublic(event.sequenceId)
-                else null
             dates.mapIndexed { index, date ->
-                CalendarEventInstanceInfo(event.id!!, date, event.duration, event.toDto(isPublic), index)
+                CalendarEventInstanceInfo(
+                    eventId = event.id!!,
+                    date = date,
+                    duration = event.duration,
+                    event = event.toDto(userSequencesVisibilityMap[event.sequenceId]),
+                    order = index
+                )
             }
         }
 
@@ -134,7 +139,25 @@ internal class CalendarEventService(
         return repository.save(calendarEvent.copy(repeatingPattern = repeatingPattern).withBase(calendarEvent)).id!!
     }
 
-    fun saveRpWithnewRruleText(rp: RepeatingPattern, startDate: ZonedDateTime) {
+    fun saveAll(events: List<CalendarEvent>) {
+        val (repeatingEvents, nonRepeatingEvents) = events.partition { it.isRepeating }
+        val (rruleTexts, rruleStrings) = restClient.post()
+            .uri("/get-rrule-text-and-string")
+            .contentType(APPLICATION_JSON)
+            .accept(APPLICATION_JSON)
+            .body(repeatingEvents.map { it.toRRuleRequest() })
+            .retrieve()
+            .body(RRuleTextsAndStrings::class.java)!!
+        val zippedTextsAndStrings = rruleTexts.zip(rruleStrings)
+        val updatedRepeatingEvents = repeatingEvents.zip(zippedTextsAndStrings) { event, (rruleText, rruleString) ->
+            val repeatingPattern = event.repeatingPattern!!.copy(rruleText = rruleText, rruleString = rruleString)
+                .withBase(event.repeatingPattern)
+            event.copy(repeatingPattern = repeatingPattern).withBase(event)
+        }
+        repository.saveAll(updatedRepeatingEvents + nonRepeatingEvents)
+    }
+
+    fun saveRpWithNewRruleText(rp: RepeatingPattern, startDate: ZonedDateTime) {
         val (rruleText, rruleString) = restClient.post()
                 .uri("/get-rrule-text-and-string")
                 .contentType(APPLICATION_JSON)
@@ -202,7 +225,7 @@ internal class CalendarEventService(
         } else {
             val updatedRepeatingPattern =
                 event.repeatingPattern!!.copy(until = previousOccurrence.plusMinutes(event.duration.toLong())).withBase(event.repeatingPattern)
-            saveRpWithnewRruleText(updatedRepeatingPattern, event.startDate)
+            saveRpWithNewRruleText(updatedRepeatingPattern, event.startDate)
         }
     }
 
@@ -246,7 +269,7 @@ internal class CalendarEventService(
             val updatedRepeatingPattern = event.repeatingPattern!!.copy(
                 until = previousOccurrence.plusMinutes(event.duration.toLong())
             ).withBase(event.repeatingPattern)
-            saveRpWithnewRruleText(updatedRepeatingPattern, event.startDate)
+            saveRpWithNewRruleText(updatedRepeatingPattern, event.startDate)
         }
     }
 
@@ -256,13 +279,13 @@ internal class CalendarEventService(
     ) {
         //update all other following events in sequence
         val events = repository.findAllBySequenceIdAndStartDateGreaterThan(event.sequenceId, oldFromDate)
-        // TODO: Refactor this to not have save in a loop
-        events.map {
+        val updatedEvents = events.map {
             it.copy(
                 startDate = it.startDate.withTimeFrom(newFromDate),
                 duration = newDuration
             ).withBase(it)
-        }.forEach { save(it) }
+        }
+        saveAll(updatedEvents)
 
         if (event.isRepeating) {
             // create new event with the new time and duration
@@ -279,7 +302,7 @@ internal class CalendarEventService(
                 val updatedRepeatingPattern = event.repeatingPattern.copy(
                     until = previousOccurrence.plusMinutes(event.duration.toLong())
                 ).withBase(event.repeatingPattern)
-                saveRpWithnewRruleText(updatedRepeatingPattern, event.startDate)
+                saveRpWithNewRruleText(updatedRepeatingPattern, event.startDate)
             }
         } else {
             save(event.copy(startDate = newFromDate, duration = newDuration).withBase(event))
@@ -288,13 +311,13 @@ internal class CalendarEventService(
 
     private fun updateAllInstances(event: CalendarEvent, newFromDate: ZonedDateTime, newDuration: Int) {
         val events = repository.findAllBySequenceId(event.sequenceId)
-        // TODO: Refactor to not use save in a loop
-        events.map {
+        val updatedEvents = events.map {
             it.copy(
                 startDate = it.startDate.withTimeFrom(newFromDate),
                 duration = newDuration
             ).withBase(it)
-        }.forEach { save(it) }
+        }
+        saveAll(updatedEvents)
     }
 
     private fun getPreviousAndNextOccurrence(event: CalendarEvent, fromDate: ZonedDateTime): PreviousAndNextOccurrence =
@@ -433,4 +456,9 @@ data class CalendarEventInstanceInfo(
 data class RRuleTextAndString(
     val rruleText: String?,
     val rruleString: String?
+)
+
+data class RRuleTextsAndStrings(
+    val rruleTexts: List<String>,
+    val rruleStrings: List<String>
 )

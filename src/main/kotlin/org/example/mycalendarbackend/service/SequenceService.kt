@@ -2,19 +2,25 @@ package org.example.mycalendarbackend.service
 
 import org.example.mycalendarbackend.domain.entity.CalendarEvent
 import org.example.mycalendarbackend.domain.entity.UserSequence
+import org.example.mycalendarbackend.domain.projection.UserSequenceVisibilityProjection
 import org.example.mycalendarbackend.exception.CalendarEntityNotFoundException
 import org.example.mycalendarbackend.extension.withBase
 import org.springframework.stereotype.Service
 import java.util.*
 
 @Service
-internal class CalendarEventSequenceService(
+internal class SequenceService(
     private val userSequenceService: UserSequenceService,
     private val sequenceOwnerService: SequenceOwnerService,
     private val userService: UserService
 ) {
 
     fun findAllSequencesForUser(userId: Long) = userSequenceService.findAllSequencesByUserId(userId)
+
+    fun getUserSequencesVisibilityMap(userId: Long): Map<String, Boolean> =
+        userSequenceService
+            .findAllSequencesByUserId(userId, UserSequenceVisibilityProjection::class.java)
+            .associate { it.sequenceId to it.isPublic }
 
     fun findAllPublicSequencesForUser(userId: Long) = userSequenceService.findAllPublicSequencesByUserId(userId)
 

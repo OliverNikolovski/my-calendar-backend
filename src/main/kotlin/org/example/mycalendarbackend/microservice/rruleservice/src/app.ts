@@ -58,6 +58,17 @@ app.post('/get-rrule-text-and-string', (req, res) => {
     });
 });
 
+app.post('/get-rrule-text-and-string-for-all-events', (req, res) => {
+    const rruleRequests = req.body as RRuleRequest[];
+    const rrules = rruleRequests.map(rruleRequest => createRRuleFromRequest(rruleRequest));
+    const [rruleTexts, rruleStrings] = rrules.reduce((acc, curr) => {
+        acc[0].push(curr.toText());
+        acc[1].push(curr.toString());
+        return acc;
+    }, [[], []] as [string[], string[]]);
+    res.send({rruleTexts, rruleStrings});
+});
+
 app.post('/calculate-previous-next-execution', (req, res) => {
     const rruleRequest = req.body.rruleRequest as RRuleRequest;
     const date = new Date(req.body.date as string);
