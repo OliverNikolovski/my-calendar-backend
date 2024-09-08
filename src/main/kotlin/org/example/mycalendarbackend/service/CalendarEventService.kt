@@ -142,7 +142,7 @@ internal class CalendarEventService(
     fun saveAll(events: List<CalendarEvent>) {
         val (repeatingEvents, nonRepeatingEvents) = events.partition { it.isRepeating }
         val (rruleTexts, rruleStrings) = restClient.post()
-            .uri("/get-rrule-text-and-string")
+            .uri("/get-rrule-text-and-string-for-all-events")
             .contentType(APPLICATION_JSON)
             .accept(APPLICATION_JSON)
             .body(repeatingEvents.map { it.toRRuleRequest() })
@@ -191,13 +191,15 @@ internal class CalendarEventService(
                 event = event,
                 newFromDate = updateRequest.newStartDate,
                 oldFromDate = updateRequest.fromDate,
-                newDuration = updateRequest.newDuration
+                newDuration = updateRequest.newDuration,
+                order = updateRequest.order
             )
             ActionType.THIS_AND_ALL_FOLLOWING_EVENTS -> updateThisAndAllFollowingInstances(
                 event = event,
                 newFromDate = updateRequest.newStartDate,
                 oldFromDate = updateRequest.fromDate,
-                newDuration = updateRequest.newDuration
+                newDuration = updateRequest.newDuration,
+                order = updateRequest.order
             )
             ActionType.ALL_EVENTS -> updateAllInstances(
                 event = event,
@@ -244,7 +246,11 @@ internal class CalendarEventService(
 
     private fun deleteAllInstances(event: CalendarEvent) = repository.deleteAllBySequenceId(event.sequenceId)
 
-    private fun updateSingleInstance(event: CalendarEvent, oldFromDate: ZonedDateTime, newFromDate: ZonedDateTime, newDuration: Int) {
+    private fun updateSingleInstance(event: CalendarEvent,
+                                     oldFromDate: ZonedDateTime,
+                                     newFromDate: ZonedDateTime,
+                                     newDuration: Int,
+                                     order: Int) {
         if (event.isNonRepeating) {
             save(event.copy(startDate = newFromDate, duration = newDuration).withBase(event))
             return
@@ -259,7 +265,12 @@ internal class CalendarEventService(
         // create new repeating event from the next occurrence onwards
         val (previousOccurrence, nextOccurrence) = getPreviousAndNextOccurrence(event, oldFromDate)
         nextOccurrence?.let {
-            val newEvent = event.copy(startDate = nextOccurrence, repeatingPattern = event.repeatingPattern!!.copy())
+            val newEvent = event.copy(
+                startDate = nextOccurrence,
+                repeatingPattern = event.repeatingPattern!!.copy(
+                    occurrenceCount = event.repeatingPattern.occurrenceCount?.minus(order)
+                )
+            )
             save(newEvent)
         }
         // update the repeating pattern for the original event or delete the original event if the first instance is modified
@@ -275,7 +286,7 @@ internal class CalendarEventService(
 
     private fun updateThisAndAllFollowingInstances(
         event: CalendarEvent, oldFromDate: ZonedDateTime,
-        newFromDate: ZonedDateTime, newDuration: Int
+        newFromDate: ZonedDateTime, newDuration: Int, order: Int
     ) {
         //update all other following events in sequence
         val events = repository.findAllBySequenceIdAndStartDateGreaterThan(event.sequenceId, oldFromDate)
@@ -290,7 +301,8 @@ internal class CalendarEventService(
         if (event.isRepeating) {
             // create new event with the new time and duration
             val newEvent = event.copy(startDate = newFromDate, duration = newDuration, repeatingPattern = event.repeatingPattern!!.copy(
-                until = event.repeatingPattern.until?.withTimeFrom(newFromDate)?.plusMinutes(newDuration.toLong())
+                until = event.repeatingPattern.until?.withTimeFrom(newFromDate)?.plusMinutes(newDuration.toLong()),
+                occurrenceCount = event.repeatingPattern.occurrenceCount?.minus(order)
             ))
             save(newEvent)
 

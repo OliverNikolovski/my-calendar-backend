@@ -9,8 +9,8 @@ app.use(bodyParser.json());
 
 const defaultDateTime: DateTime = {
     year: (new Date()).getFullYear() + 2,
-    month: 1,
-    day: 1,
+    month: (new Date()).getMonth(),
+    day: (new Date()).getDate(),
     hour: 0,
     minute: 0,
     second: 0
@@ -86,11 +86,6 @@ app.post('/calculate-previous-execution', (req, res) => {
     const rrule = createRRuleFromRequest(rruleRequest);
     const previousOccurrence = rrule.before(date)
     res.send(previousOccurrence);
-});
-
-app.post('/generate-instances-for-events', (req, res) => {
-    const rrule = createRRuleFromRequest(req.body as RRuleRequest);
-    res.send(rrule.all());
 });
 
 app.post('/get-instance-for-event-on-day', (req, res) => {
