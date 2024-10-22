@@ -30,6 +30,7 @@ dependencies {
     implementation("io.jsonwebtoken:jjwt-api:0.12.6")
     implementation("org.springframework.boot:spring-boot-starter-mail")
     implementation("com.github.jknack:handlebars:4.4.0")
+    implementation("org.mnode.ical4j:ical4j:4.0.4")
     runtimeOnly ("io.jsonwebtoken:jjwt-impl:0.12.6")
     runtimeOnly ("io.jsonwebtoken:jjwt-jackson:0.12.6")
     runtimeOnly("org.postgresql:postgresql:42.7.3")
