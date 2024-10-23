@@ -121,7 +121,7 @@ internal class CalendarEventService(
         return save(request.toEntity(sequenceId))
     }
 
-    fun save(calendarEvent: CalendarEvent): Long {
+    private fun save(calendarEvent: CalendarEvent): Long {
         val (rruleText, rruleString) = if (calendarEvent.isRepeating) {
             restClient.post()
                 .uri("/get-rrule-text-and-string")
@@ -330,6 +330,11 @@ internal class CalendarEventService(
             ).withBase(it)
         }
         saveAll(updatedEvents)
+    }
+
+    fun getPreviousAndNextOccurrencesPublic(event: CalendarEvent, referenceDate: ZonedDateTime): Pair<ZonedDateTime?, ZonedDateTime?> {
+        val (previousOccurrence, nextOccurrence) = getPreviousAndNextOccurrence(event, referenceDate)
+        return previousOccurrence to nextOccurrence
     }
 
     private fun getPreviousAndNextOccurrence(event: CalendarEvent, fromDate: ZonedDateTime): PreviousAndNextOccurrence =

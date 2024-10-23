@@ -6,7 +6,6 @@ import org.example.mycalendarbackend.domain.projection.UserSequenceVisibilityPro
 import org.example.mycalendarbackend.exception.CalendarEntityNotFoundException
 import org.example.mycalendarbackend.extension.withBase
 import org.springframework.stereotype.Service
-import java.util.*
 
 @Service
 internal class SequenceService(
@@ -54,7 +53,7 @@ internal class SequenceService(
             sequenceId = sequenceId
         )
 
-    fun generateSequenceId(): String = UUID.randomUUID().toString()
+    fun generateSequenceId(): String = SequenceGenerator.generateId()
 
     fun findUserSequenceForAuthenticatedUser(sequenceId: String): UserSequence = checkNotNull(
         userSequenceService.findByUserIdAndSequenceId(
