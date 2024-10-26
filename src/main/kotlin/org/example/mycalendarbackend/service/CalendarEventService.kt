@@ -1,6 +1,5 @@
 package org.example.mycalendarbackend.service
 
-import org.example.mycalendarbackend.api.request.CalendarEventCreationRequest
 import org.example.mycalendarbackend.api.request.CalendarEventUpdateRequest
 import org.example.mycalendarbackend.api.request.ShareEventRequest
 import org.example.mycalendarbackend.domain.dto.*
@@ -34,13 +33,6 @@ internal class CalendarEventService(
 ) {
 
     fun findAllByStartDateLessThan(targetDate: ZonedDateTime) = repository.findAllByStartDateLessThan(targetDate)
-
-    fun findAllByStartDateGreaterThanEqual(from: ZonedDateTime) = repository.findAllByStartDateGreaterThanEqual(from)
-
-    fun generateInstanceForEvents(from: ZonedDateTime): Map<String, List<CalendarEventInstanceInfo>> {
-        val events = findAllByStartDateGreaterThanEqual(from)
-        return createEventInstancesMapFromEvents(events)
-    }
 
     fun generateEventInstancesForAuthenticatedUser(): Map<String, List<CalendarEventInstanceInfo>> {
         val userSequences = sequenceService.findAllSequencesForAuthenticatedUser()
@@ -76,7 +68,7 @@ internal class CalendarEventService(
             dates.mapIndexed { index, date ->
                 CalendarEventInstanceInfo(
                     eventId = event.id!!,
-                    date = date,
+                    date = date.withOffsetSameLocal(event.offsetInSeconds),
                     duration = event.duration,
                     event = event.toDto(userSequencesVisibilityMap[event.sequenceId]),
                     order = index
@@ -104,7 +96,7 @@ internal class CalendarEventService(
             instance.value.toLocalDate().toString() to listOf(
                 CalendarEventInstanceInfo(
                     eventId = eventId,
-                    date = instance.value,
+                    date = instance.value.withOffsetSameLocal(event.offsetInSeconds),
                     duration = event.duration,
                     event = event.toDto(isPublic),
                     order = instance.index
@@ -115,10 +107,10 @@ internal class CalendarEventService(
     }
 
     @Transactional
-    fun save(request: CalendarEventCreationRequest): Long {
+    fun save(dto: CalendarEventCreationDto): Long {
         val sequenceId = sequenceService.generateSequenceId()
         sequenceService.saveSequenceForUserAndOwnerOnAuthenticatedUser(sequenceId)
-        return save(request.toEntity(sequenceId))
+        return save(dto.toEntity(sequenceId, dto.startDate.offset.totalSeconds))
     }
 
     private fun save(calendarEvent: CalendarEvent): Long {
@@ -226,7 +218,7 @@ internal class CalendarEventService(
             repository.delete(event)
         } else {
             val updatedRepeatingPattern =
-                event.repeatingPattern!!.copy(until = previousOccurrence.plusMinutes(event.duration.toLong())).withBase(event.repeatingPattern)
+                event.repeatingPattern!!.copy(until = previousOccurrence.atEndOfDay()).withBase(event.repeatingPattern)
             saveRpWithNewRruleText(updatedRepeatingPattern, event.startDate)
         }
     }
@@ -278,7 +270,7 @@ internal class CalendarEventService(
             repository.delete(event)
         } else {
             val updatedRepeatingPattern = event.repeatingPattern!!.copy(
-                until = previousOccurrence.plusMinutes(event.duration.toLong())
+                until = previousOccurrence.atEndOfDay()
             ).withBase(event.repeatingPattern)
             saveRpWithNewRruleText(updatedRepeatingPattern, event.startDate)
         }
@@ -312,7 +304,7 @@ internal class CalendarEventService(
                 repository.delete(event)
             } else {
                 val updatedRepeatingPattern = event.repeatingPattern.copy(
-                    until = previousOccurrence.plusMinutes(event.duration.toLong())
+                    until = previousOccurrence.atEndOfDay()
                 ).withBase(event.repeatingPattern)
                 saveRpWithNewRruleText(updatedRepeatingPattern, event.startDate)
             }
@@ -345,22 +337,28 @@ internal class CalendarEventService(
             .body(
                 mapOf(
                     "rruleRequest" to event.toRRuleRequest(),
-                    "date" to fromDate.toString()
+                    "date" to fromDate.withOffsetSameInstant(event.offsetInSeconds).withOffsetSameLocal(0).toString()
                 )
             ).retrieve()
             .body(PreviousAndNextOccurrence::class.java)!!
+            .let {
+                PreviousAndNextOccurrence(
+                    previousOccurrence = it.previousOccurrence?.withOffsetSameLocal(event.offsetInSeconds),
+                    nextOccurrence = it.nextOccurrence?.withOffsetSameLocal(event.offsetInSeconds)
+                )
+            }
 
     private fun getPreviousOccurrence(event: CalendarEvent, referenceDate: ZonedDateTime): ZonedDateTime? =
         restClient.post()
-            .uri("/calculate-previous-execution")
-            .contentType(APPLICATION_JSON)
-            .body(
-                mapOf(
-                    "rruleRequest" to event.toRRuleRequest(),
-                    "date" to referenceDate.toString()
-                )
-            ).retrieve()
-            .body(ZonedDateTime::class.java)
+                .uri("/calculate-previous-execution")
+                .contentType(APPLICATION_JSON)
+                .body(
+                    mapOf(
+                        "rruleRequest" to event.toRRuleRequest(),
+                        "date" to referenceDate.withOffsetSameInstant(event.offsetInSeconds).withOffsetSameLocal(0).toString()
+                    )
+                ).retrieve()
+                .body(ZonedDateTime::class.java)?.withOffsetSameLocal(event.offsetInSeconds)
 
     private fun generateEventInstances(rruleRequests: List<RRuleRequest>) =
         restClient.post()

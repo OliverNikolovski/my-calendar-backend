@@ -2,10 +2,15 @@ package org.example.mycalendarbackend.extension
 
 import org.example.mycalendarbackend.domain.dto.DateTime
 import java.time.LocalTime
+import java.time.OffsetDateTime
+import java.time.ZoneOffset
 import java.time.ZonedDateTime
 
 fun ZonedDateTime.atStartOfDay(): ZonedDateTime =
     withHour(0).withMinute(0).withSecond(0).withNano(0)
+
+fun ZonedDateTime.atEndOfDay(): ZonedDateTime =
+    withHour(23).withMinute(59).withSecond(59).withNano(0)
 
 fun ZonedDateTime.endOfPreviousDay(): ZonedDateTime =
     atStartOfDay().minusSeconds(1)
@@ -20,6 +25,12 @@ fun ZonedDateTime.toDateTime(): DateTime = DateTime(
     minute = minute,
     second = second
 )
+
+fun ZonedDateTime.withOffsetSameInstant(offsetInSeconds: Int): ZonedDateTime =
+    toOffsetDateTime().withOffsetSameInstant(ZoneOffset.ofTotalSeconds(offsetInSeconds)).toZonedDateTime()
+
+fun ZonedDateTime.withOffsetSameLocal(offsetInSeconds: Int): ZonedDateTime =
+    toOffsetDateTime().withOffsetSameLocal(ZoneOffset.ofTotalSeconds(offsetInSeconds)).toZonedDateTime()
 
 fun ZonedDateTime.plusOneDay(): ZonedDateTime = plusDays(1)
 

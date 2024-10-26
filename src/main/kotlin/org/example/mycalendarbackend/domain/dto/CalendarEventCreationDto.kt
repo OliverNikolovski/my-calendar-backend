@@ -2,7 +2,7 @@ package org.example.mycalendarbackend.domain.dto
 
 import java.time.ZonedDateTime
 
-data class CalendarEventDto(
+data class CalendarEventCreationDto(
     val id: Long?,
 
     val title: String?,
@@ -11,13 +11,9 @@ data class CalendarEventDto(
 
     val isRepeating: Boolean,
 
-    val startDate: String,
+    val startDate: ZonedDateTime,
 
     val duration: Int,
 
-    val repeatingPattern: RepeatingPatternDto?,
-
-    val sequenceId: String,
-
-    val isPublic: Boolean?
+    val repeatingPattern: RepeatingPatternDto?
 )

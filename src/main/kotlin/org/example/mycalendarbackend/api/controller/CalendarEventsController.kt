@@ -5,6 +5,7 @@ import org.example.mycalendarbackend.api.request.CalendarEventUpdateRequest
 import org.example.mycalendarbackend.api.request.EventSequenceVisibilityUpdateRequest
 import org.example.mycalendarbackend.api.request.ShareEventRequest
 import org.example.mycalendarbackend.domain.enums.ActionType
+import org.example.mycalendarbackend.extension.toDto
 import org.example.mycalendarbackend.service.CalendarEventInstanceInfo
 import org.example.mycalendarbackend.service.CalendarEventService
 import org.springframework.format.annotation.DateTimeFormat
@@ -42,7 +43,7 @@ class CalendarEventsController internal constructor(
         service.generateInstancesForSequence(sequenceId)
 
     @PostMapping
-    fun create(@RequestBody request: CalendarEventCreationRequest) = service.save(request)
+    fun create(@RequestBody request: CalendarEventCreationRequest) = service.save(request.toDto())
 
     @DeleteMapping("/{id}")
     fun delete(@PathVariable id: Long,

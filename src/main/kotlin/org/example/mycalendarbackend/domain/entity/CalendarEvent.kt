@@ -24,8 +24,11 @@ data class CalendarEvent(
     @ManyToOne(fetch = FetchType.EAGER, cascade = [CascadeType.ALL])
     val repeatingPattern: RepeatingPattern?,
 
-    @JoinColumn(name = "sequence_id")
-    val sequenceId: String
+    @Column(name = "sequence_id")
+    val sequenceId: String,
+
+    @Column(name = "offset_in_seconds")
+    val offsetInSeconds: Int
 
 ) : BaseEntity<Long>() {
 

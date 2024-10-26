@@ -12,9 +12,11 @@ data class CalendarEventCreationRequest(
 
     val isRepeating: Boolean,
 
-    val startDate: ZonedDateTime,
+    val startDate: String,
 
     val duration: Int,
 
-    val repeatingPattern: RepeatingPatternDto?
+    val repeatingPattern: RepeatingPatternCreationRequest?
 )
+
+

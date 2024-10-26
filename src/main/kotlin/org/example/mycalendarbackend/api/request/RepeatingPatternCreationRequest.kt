@@ -1,9 +1,8 @@
-package org.example.mycalendarbackend.domain.dto
+package org.example.mycalendarbackend.api.request
 
 import org.example.mycalendarbackend.domain.enums.Frequency
-import java.time.ZonedDateTime
 
-data class RepeatingPatternDto(
+data class RepeatingPatternCreationRequest(
     val id: Long?,
 
     val frequency: Frequency,

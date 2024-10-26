@@ -2,13 +2,17 @@ package org.example.mycalendarbackend.service
 
 import jakarta.annotation.PostConstruct
 import net.fortuna.ical4j.data.CalendarBuilder
+import net.fortuna.ical4j.model.Calendar
 import net.fortuna.ical4j.model.Recur
 import net.fortuna.ical4j.model.component.VEvent
 import net.fortuna.ical4j.model.property.*
 import org.example.mycalendarbackend.domain.entity.CalendarEvent
 import org.example.mycalendarbackend.domain.entity.RepeatingPattern
 import org.example.mycalendarbackend.domain.enums.Frequency
+import org.example.mycalendarbackend.extension.withOffsetSameLocal
 import org.example.mycalendarbackend.extension.withTimeFrom
+import org.springframework.boot.context.event.ApplicationReadyEvent
+import org.springframework.context.event.EventListener
 import org.springframework.stereotype.Service
 import java.io.StringReader
 import java.nio.file.Files
@@ -21,33 +25,43 @@ import kotlin.jvm.optionals.getOrNull
 
 @Service
 internal class CalendarParser(
-    private val eventService: CalendarEventService
+    private val eventService: CalendarEventService,
+    private val sequenceService: SequenceService
 ) {
 
-    @PostConstruct
+    //@EventListener(ApplicationReadyEvent::class)
     fun saveImportedCalendarEvents() {
-        val path = Path("C:\\Users\\OLIVER-PC\\Desktop\\test_calendar.ics")
+//        val path = Path("C:\\Users\\OLIVER-PC\\Desktop\\test_calendar.ics")
+        val path = Path("C:\\Users\\OLIVER-PC\\Desktop\\temp.ics")
         val content = Files.readString(path)
         val events = parseIcsContent(content)
         eventService.saveAll(events)
+        events.map { it.sequenceId }
+            .distinct()
+            .forEach {
+                sequenceService.saveSequenceForUserAndOwner(userId = 1, sequenceId = it)
+            }
     }
 
     fun parseIcsContent(icsContent: String): List<CalendarEvent> {
         //System.setProperty("net.fortuna.ical4j.timezone.cache.impl", MapTimeZoneCache::class.java.name)
         val builder = CalendarBuilder()
         val calendar = builder.build(StringReader(icsContent)) // TODO: maybe handle exceptions
-        val xWrTimezone = calendar.getProperty<XProperty>("X-WR-TIMEZONE").getOrNull()?.value
-        val iCalEvents = calendar.getComponents<VEvent>("VEVENT")
+        val iCalEvents = calendar.events
         val mappedEvents = mutableListOf<CalendarEvent>()
         iCalEvents.forEach { vEvent ->
-            val (eventsToCreate, eventToRemove) = mapVEventToCalendarEvent(vEvent, mappedEvents, xWrTimezone)
+            val (eventsToCreate, eventToRemove) = mapVEventToCalendarEvent(vEvent, mappedEvents, calendar.xWrTimeZone)
             if (eventToRemove != null) mappedEvents.removeIf { it === eventToRemove }
             mappedEvents.addAll(eventsToCreate)
         }
         return mappedEvents
     }
 
-    private fun mapVEventToCalendarEvent(target: VEvent, events: List<CalendarEvent>, xWrTimezone: String? = null): EventMappingResult {
+    private fun mapVEventToCalendarEvent(
+        target: VEvent,
+        events: List<CalendarEvent>,
+        xWrTimezone: String? = null
+    ): EventMappingResult {
         val zoneId = ZoneId.of(xWrTimezone ?: target.tzId)
         val startDate = target.dtStart.withZoneSameInstant(zoneId)
         val endDate = target.dtEnd?.withZoneSameInstant(zoneId)
@@ -56,7 +70,8 @@ internal class CalendarParser(
             val interval = it.interval.nullIfNegative()
             val frequency = Frequency.valueOf(it.frequency.name)
             val count = it.count.nullIfNegative()
-            val until = it.until.toInstant().atZone(zoneId) // zavrshuva na kraj na den (sekunda pred polnok, vo UTC zona - Z)
+            val until =
+                it.until.toInstant().atZone(zoneId) // zavrshuva na kraj na den (sekunda pred polnok, vo UTC zona - Z)
             val weekDays = it.weekNoList.toTypedArray().ifEmpty { null }
             val setPos = it.setPosList?.firstOrNull() // should have been list of integers instead
             RepeatingPattern(
@@ -76,23 +91,28 @@ internal class CalendarParser(
             startDate = target.dtStart.withZoneSameInstant(zoneId),
             duration = target.durationInMinutes ?: ChronoUnit.MINUTES.between(startDate, endDate).toInt(),
             sequenceId = sequenceId,
-            repeatingPattern = repeatingPattern
+            repeatingPattern = repeatingPattern,
+            offsetInSeconds = target.dtStart.withZoneSameInstant(zoneId).offset.totalSeconds
         )
-        if (calendarEvent.isNonRepeating) { // if it is non-repeating, we know it does not have RECURRENCE-ID
-            return EventMappingResult(eventsToCreate = listOf(calendarEvent))
-        }
+//        if (calendarEvent.isNonRepeating) { // if it is non-repeating, we know it does not have RECURRENCE-ID
+//            return EventMappingResult(eventsToCreate = listOf(calendarEvent))
+//        }
 
-        val recurrenceId = target.getProperty<RecurrenceId<ZonedDateTime>>("RECURRENCE-ID").getOrNull()?.date
-            ?.withZoneSameInstant(zoneId)
+        val recurrenceId = target.recurrenceIdDate?.withZoneSameInstant(zoneId)
         return recurrenceId?.let {
             val originalEvent = events.find { it.sequenceId == target.uidValue }!!
             val (previousOccurrence, nextOccurrence) = eventService.getPreviousAndNextOccurrencesPublic(
                 event = originalEvent,
+//                referenceDate = calendarEvent.startDate.withTimeFrom(originalEvent.startDate).withOffsetSameLocal(0)
                 referenceDate = calendarEvent.startDate.withTimeFrom(originalEvent.startDate)
             )
+//                .let {
+//                it.first?.withOffsetSameLocal(originalEvent.offsetInSeconds) to
+//                        it.second?.withOffsetSameLocal(originalEvent.offsetInSeconds)
+//            }
             val eventBeforeTarget = previousOccurrence?.let {
                 originalEvent.copy(
-                    repeatingPattern = repeatingPattern!!.copy(
+                    repeatingPattern = originalEvent.repeatingPattern?.copy(
                         until = previousOccurrence
                     )
                 )
@@ -115,6 +135,12 @@ internal class CalendarParser(
     )
 
 }
+
+val Calendar.xWrTimeZone: String?
+    get() = getProperty<XProperty>("X-WR-TIMEZONE").getOrNull()?.value
+
+val Calendar.events: List<VEvent>
+    get() = getComponents("VEVENT")
 
 val VEvent.uidValue: String?
     get() = getProperty<Uid>("Uid").getOrNull()?.value
@@ -146,5 +172,8 @@ val VEvent.durationInMinutes: Int?
 
 val VEvent.recur: Recur<OffsetDateTime>?
     get() = getProperty<RRule<OffsetDateTime>>("RRULE").getOrNull()?.recur
+
+val VEvent.recurrenceIdDate: ZonedDateTime?
+    get() = getProperty<RecurrenceId<ZonedDateTime>>("RECURRENCE-ID").getOrNull()?.date
 
 fun Int.nullIfNegative(): Int? = if (this >= 0) this else null
