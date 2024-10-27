@@ -1,15 +1,15 @@
 package org.example.mycalendarbackend.service
 
-import jakarta.annotation.PostConstruct
 import net.fortuna.ical4j.data.CalendarBuilder
 import net.fortuna.ical4j.model.Calendar
 import net.fortuna.ical4j.model.Recur
+import net.fortuna.ical4j.model.WeekDay.Day
 import net.fortuna.ical4j.model.component.VEvent
 import net.fortuna.ical4j.model.property.*
 import org.example.mycalendarbackend.domain.entity.CalendarEvent
 import org.example.mycalendarbackend.domain.entity.RepeatingPattern
 import org.example.mycalendarbackend.domain.enums.Frequency
-import org.example.mycalendarbackend.extension.withOffsetSameLocal
+import org.example.mycalendarbackend.extension.withOffsetSameInstant
 import org.example.mycalendarbackend.extension.withTimeFrom
 import org.springframework.boot.context.event.ApplicationReadyEvent
 import org.springframework.context.event.EventListener
@@ -23,16 +23,19 @@ import java.time.temporal.ChronoUnit
 import kotlin.io.path.Path
 import kotlin.jvm.optionals.getOrNull
 
+
+// replace withZoneSameInstant with withOffsetSameInstant everywhere??
+
 @Service
 internal class CalendarParser(
     private val eventService: CalendarEventService,
     private val sequenceService: SequenceService
 ) {
 
-    //@EventListener(ApplicationReadyEvent::class)
+    @EventListener(ApplicationReadyEvent::class)
     fun saveImportedCalendarEvents() {
 //        val path = Path("C:\\Users\\OLIVER-PC\\Desktop\\test_calendar.ics")
-        val path = Path("C:\\Users\\OLIVER-PC\\Desktop\\temp.ics")
+        val path = Path("C:\\Users\\OLIVER-PC\\Desktop\\test_calendar.ics")
         val content = Files.readString(path)
         val events = parseIcsContent(content)
         eventService.saveAll(events)
@@ -67,12 +70,16 @@ internal class CalendarParser(
         val endDate = target.dtEnd?.withZoneSameInstant(zoneId)
         val sequenceId = target.uidValue ?: SequenceGenerator.generateId()
         val repeatingPattern = target.recur?.let {
+            it.dayList
             val interval = it.interval.nullIfNegative()
             val frequency = Frequency.valueOf(it.frequency.name)
             val count = it.count.nullIfNegative()
             val until =
                 it.until.toInstant().atZone(zoneId) // zavrshuva na kraj na den (sekunda pred polnok, vo UTC zona - Z)
-            val weekDays = it.weekNoList.toTypedArray().ifEmpty { null }
+            val weekDays = it.dayList
+                .map { weekday -> if (weekday.day == Day.SU) 6 else weekday.day.ordinal - 1 }
+                .toTypedArray()
+                .ifEmpty { null }
             val setPos = it.setPosList?.firstOrNull() // should have been list of integers instead
             RepeatingPattern(
                 frequency = frequency,
@@ -103,13 +110,8 @@ internal class CalendarParser(
             val originalEvent = events.find { it.sequenceId == target.uidValue }!!
             val (previousOccurrence, nextOccurrence) = eventService.getPreviousAndNextOccurrencesPublic(
                 event = originalEvent,
-//                referenceDate = calendarEvent.startDate.withTimeFrom(originalEvent.startDate).withOffsetSameLocal(0)
-                referenceDate = calendarEvent.startDate.withTimeFrom(originalEvent.startDate)
+                referenceDate = calendarEvent.startDate.withOffsetSameInstant(originalEvent.offsetInSeconds).withTimeFrom(originalEvent.startDate.withOffsetSameInstant(originalEvent.offsetInSeconds))
             )
-//                .let {
-//                it.first?.withOffsetSameLocal(originalEvent.offsetInSeconds) to
-//                        it.second?.withOffsetSameLocal(originalEvent.offsetInSeconds)
-//            }
             val eventBeforeTarget = previousOccurrence?.let {
                 originalEvent.copy(
                     repeatingPattern = originalEvent.repeatingPattern?.copy(
