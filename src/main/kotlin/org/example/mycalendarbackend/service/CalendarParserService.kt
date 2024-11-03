@@ -9,11 +9,13 @@ import net.fortuna.ical4j.model.property.*
 import org.example.mycalendarbackend.domain.entity.CalendarEvent
 import org.example.mycalendarbackend.domain.entity.RepeatingPattern
 import org.example.mycalendarbackend.domain.enums.Frequency
+import org.example.mycalendarbackend.domain.result.CalendarImportResult
 import org.example.mycalendarbackend.extension.withOffsetSameInstant
 import org.example.mycalendarbackend.extension.withTimeFrom
 import org.springframework.boot.context.event.ApplicationReadyEvent
 import org.springframework.context.event.EventListener
 import org.springframework.stereotype.Service
+import org.springframework.web.multipart.MultipartFile
 import java.io.StringReader
 import java.nio.file.Files
 import java.time.OffsetDateTime
@@ -23,16 +25,15 @@ import java.time.temporal.ChronoUnit
 import kotlin.io.path.Path
 import kotlin.jvm.optionals.getOrNull
 
-
 // replace withZoneSameInstant with withOffsetSameInstant everywhere??
-
 @Service
-internal class CalendarParser(
+internal class CalendarParserService(
     private val eventService: CalendarEventService,
-    private val sequenceService: SequenceService
+    private val sequenceService: SequenceService,
+    private val userService: UserService
 ) {
 
-    @EventListener(ApplicationReadyEvent::class)
+    //@EventListener(ApplicationReadyEvent::class)
     fun saveImportedCalendarEvents() {
 //        val path = Path("C:\\Users\\OLIVER-PC\\Desktop\\test_calendar.ics")
         val path = Path("C:\\Users\\OLIVER-PC\\Desktop\\test_calendar.ics")
@@ -44,6 +45,30 @@ internal class CalendarParser(
             .forEach {
                 sequenceService.saveSequenceForUserAndOwner(userId = 1, sequenceId = it)
             }
+    }
+
+    fun importIcsFile(file: MultipartFile): CalendarImportResult {
+        if (file.isEmpty) {
+            return CalendarImportResult.EmptyFile
+        }
+        if (file.contentType != "text/calendar") {
+            return CalendarImportResult.InvalidFileType
+        }
+        try {
+            val icsContent = String(file.bytes, Charsets.UTF_8)
+            val events = parseIcsContent(icsContent)
+            eventService.saveAll(events)
+            events.map { it.sequenceId }
+                .distinct()
+                .forEach {
+                    sequenceService.saveSequenceForUserAndOwner(userId = userService.getAuthenticatedUserId(), sequenceId = it)
+                }
+            return CalendarImportResult.Success
+        }
+        catch (e: Exception) {
+            e.printStackTrace()
+            return CalendarImportResult.ProcessingError
+        }
     }
 
     fun parseIcsContent(icsContent: String): List<CalendarEvent> {

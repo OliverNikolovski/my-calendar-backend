@@ -5,20 +5,25 @@ import org.example.mycalendarbackend.api.request.CalendarEventUpdateRequest
 import org.example.mycalendarbackend.api.request.EventSequenceVisibilityUpdateRequest
 import org.example.mycalendarbackend.api.request.ShareEventRequest
 import org.example.mycalendarbackend.domain.enums.ActionType
+import org.example.mycalendarbackend.domain.result.CalendarImportResult
 import org.example.mycalendarbackend.extension.toDto
 import org.example.mycalendarbackend.service.CalendarEventInstanceInfo
 import org.example.mycalendarbackend.service.CalendarEventService
+import org.example.mycalendarbackend.service.CalendarParserService
 import org.springframework.format.annotation.DateTimeFormat
 import org.springframework.http.HttpHeaders
+import org.springframework.http.HttpStatusCode
 import org.springframework.web.bind.annotation.*
 import java.time.ZonedDateTime
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
+import org.springframework.web.multipart.MultipartFile
 
 @RestController
 @RequestMapping("/api/calendar-events")
 class CalendarEventsController internal constructor(
-    private val service: CalendarEventService
+    private val service: CalendarEventService,
+    private val calendarParserService: CalendarParserService
 ) {
 
     @GetMapping("/test")
@@ -77,6 +82,12 @@ class CalendarEventsController internal constructor(
         return ResponseEntity.ok()
             .headers(headers)
             .body(icsData.toByteArray())
+    }
+
+    @PostMapping("/import", consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
+    fun importCalendar(@RequestParam file: MultipartFile): ResponseEntity<String> {
+        val result = calendarParserService.importIcsFile(file)
+        return ResponseEntity.status(result.httpStatus).body(result.message)
     }
 
     @PatchMapping("/add-or-update-email-notification-config")
