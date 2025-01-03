@@ -1,8 +1,5 @@
 package org.example.mycalendarbackend.api.request
 
-import org.example.mycalendarbackend.domain.dto.RepeatingPatternDto
-import java.time.ZonedDateTime
-
 data class CalendarEventCreationRequest(
     val id: Long?,
 
@@ -16,7 +13,9 @@ data class CalendarEventCreationRequest(
 
     val duration: Int,
 
-    val repeatingPattern: RepeatingPatternCreationRequest?
+    val repeatingPattern: RepeatingPatternCreationRequest?,
+
+    val minutes: Int?
 )
 
 

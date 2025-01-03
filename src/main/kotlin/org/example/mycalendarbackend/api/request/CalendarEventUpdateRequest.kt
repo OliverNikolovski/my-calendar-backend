@@ -7,7 +7,7 @@ data class CalendarEventUpdateRequest(
     val eventId: Long,
     val fromDate: ZonedDateTime,
     val actionType: ActionType,
-    val newStartDate: ZonedDateTime,
-    val newDuration: Int,
+    val startTime: ZonedDateTime,
+    val duration: Int,
     val order: Int
 )

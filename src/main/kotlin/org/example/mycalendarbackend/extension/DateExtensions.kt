@@ -58,8 +58,8 @@ fun ZonedDateTime.isInPastComparingTimeOnly(): Boolean {
     return givenTime.isBefore(currentTime)
 }
 
-fun ZonedDateTime.withYearMonthAndDayFrom(other: ZonedDateTime) =
+fun ZonedDateTime.withYearMonthAndDayFrom(other: ZonedDateTime): ZonedDateTime =
     withYear(other.year).withMonth(other.monthValue).withDayOfMonth(other.dayOfMonth)
 
-fun ZonedDateTime.withCurrentYearMonthAndDay() = withYearMonthAndDayFrom(ZonedDateTime.now())
+fun ZonedDateTime.withCurrentYearMonthAndDay(): ZonedDateTime = withYearMonthAndDayFrom(ZonedDateTime.now())
 

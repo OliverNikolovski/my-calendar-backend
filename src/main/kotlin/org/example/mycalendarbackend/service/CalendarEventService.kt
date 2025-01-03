@@ -181,22 +181,22 @@ internal class CalendarEventService(
         when (updateRequest.actionType) {
             ActionType.THIS_EVENT -> updateSingleInstance(
                 event = event,
-                newFromDate = updateRequest.newStartDate,
+                newFromDate = updateRequest.startTime,
                 oldFromDate = updateRequest.fromDate,
-                newDuration = updateRequest.newDuration,
+                newDuration = updateRequest.duration,
                 order = updateRequest.order
             )
             ActionType.THIS_AND_ALL_FOLLOWING_EVENTS -> updateThisAndAllFollowingInstances(
                 event = event,
-                newFromDate = updateRequest.newStartDate,
+                newFromDate = updateRequest.startTime,
                 oldFromDate = updateRequest.fromDate,
-                newDuration = updateRequest.newDuration,
+                newDuration = updateRequest.duration,
                 order = updateRequest.order
             )
             ActionType.ALL_EVENTS -> updateAllInstances(
                 event = event,
-                newFromDate = updateRequest.newStartDate,
-                newDuration = updateRequest.newDuration
+                newFromDate = updateRequest.startTime,
+                newDuration = updateRequest.duration
             )
         }
     }

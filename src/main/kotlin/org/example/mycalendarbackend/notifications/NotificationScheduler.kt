@@ -26,7 +26,7 @@ internal class NotificationScheduler(
         // here we fetch the events that are already started or are going to start today
         val events = eventService.findAllByStartDateLessThan(now.tomorrowMidnight())
         // now we need to eliminate the past events (i.e. the events that are finished)
-        // here we have to different scenarios: the event has end date or the event has occurrence count
+        // here we have two different scenarios: the event has end date or the event has occurrence count
         val filteredEvents = events.filter { event ->
             if (event.repeatingPattern?.until != null) {
                 !event.repeatingPattern.until.isBefore(now)
@@ -43,6 +43,7 @@ internal class NotificationScheduler(
         scheduleNotificationsForEvents(listOf(event), ZonedDateTime.now())
     }
 
+    // one improvement I can think of is to further filter the events that have an instance on 'onDate' before we send them to this method
     private fun scheduleNotificationsForEvents(events: List<CalendarEvent>, onDate: ZonedDateTime) {
         events.forEach { event ->
             val userSequences = userSequenceService.findAllBySequenceId(event.sequenceId)
