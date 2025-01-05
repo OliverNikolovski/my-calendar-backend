@@ -15,5 +15,7 @@ data class CalendarEventCreationDto(
 
     val duration: Int,
 
-    val repeatingPattern: RepeatingPatternDto?
+    val repeatingPattern: RepeatingPatternDto?,
+
+    val minutes: Int?
 )

@@ -1,7 +1,5 @@
 package org.example.mycalendarbackend.domain.dto
 
-import java.time.ZonedDateTime
-
 data class CalendarEventDto(
     val id: Long?,
 
@@ -19,5 +17,7 @@ data class CalendarEventDto(
 
     val sequenceId: String,
 
-    val isPublic: Boolean?
+    val isPublic: Boolean?,
+
+    val minutes: Int?
 )

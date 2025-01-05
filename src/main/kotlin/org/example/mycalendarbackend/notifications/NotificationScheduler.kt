@@ -4,6 +4,7 @@ import org.example.mycalendarbackend.domain.dto.DateTime
 import org.example.mycalendarbackend.domain.entity.CalendarEvent
 import org.example.mycalendarbackend.extension.toRRuleRequest
 import org.example.mycalendarbackend.extension.tomorrowMidnight
+import org.example.mycalendarbackend.extension.withOffsetSameLocal
 import org.example.mycalendarbackend.service.CalendarEventService
 import org.example.mycalendarbackend.service.UserSequenceService
 import org.springframework.http.MediaType
@@ -62,6 +63,7 @@ internal class NotificationScheduler(
                     )
                 ).retrieve()
                 .body(ZonedDateTime::class.java)
+                ?.withOffsetSameLocal(event.offsetInSeconds) // because the date returned will be appended with 'Z'
             if (date != null) {
                 userSequences.forEach {
                     notificationService.save(
@@ -73,12 +75,5 @@ internal class NotificationScheduler(
             }
         }
     }
-
-//    @EventListener(ApplicationReadyEvent::class)
-//    @Async
-//    fun execute() {
-//        Thread.sleep(5000)
-//        scheduleNotifications()
-//    }
 
 }

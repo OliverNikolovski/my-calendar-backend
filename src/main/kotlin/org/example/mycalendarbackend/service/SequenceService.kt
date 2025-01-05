@@ -2,6 +2,7 @@ package org.example.mycalendarbackend.service
 
 import org.example.mycalendarbackend.domain.entity.CalendarEvent
 import org.example.mycalendarbackend.domain.entity.UserSequence
+import org.example.mycalendarbackend.domain.projection.UserSequenceMinutesProjection
 import org.example.mycalendarbackend.domain.projection.UserSequenceVisibilityProjection
 import org.example.mycalendarbackend.exception.CalendarEntityNotFoundException
 import org.example.mycalendarbackend.extension.withBase
@@ -20,6 +21,11 @@ internal class SequenceService(
         userSequenceService
             .findAllSequencesByUserId(userId, UserSequenceVisibilityProjection::class.java)
             .associate { it.sequenceId to it.isPublic }
+
+    fun getUserSequencesMinutesMap(userId: Long): Map<String, Int?> =
+        userSequenceService
+            .findAllSequencesByUserId(userId, UserSequenceMinutesProjection::class.java)
+            .associate { it.sequenceId to it.notifyMinutesBefore }
 
     fun findAllPublicSequencesForUser(userId: Long) = userSequenceService.findAllPublicSequencesByUserId(userId)
 
@@ -72,7 +78,7 @@ internal class SequenceService(
     fun isSequenceForAuthenticatedUserPublic(sequenceId: String): Boolean =
         findUserSequenceForAuthenticatedUser(sequenceId).isPublic
 
-    fun saveNotificationConfigForEvent(event: CalendarEvent, minutes: Int) {
+    fun saveNotificationConfigForEvent(event: CalendarEvent, minutes: Int?) {
         val userSequence = userSequenceService.findByUserIdAndSequenceId(
             userId = userService.getAuthenticatedUserId(),
             sequenceId = event.sequenceId
