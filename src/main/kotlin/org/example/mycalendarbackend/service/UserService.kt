@@ -45,5 +45,7 @@ internal class UserService(
 
     fun isAuthenticatedUserCalendarPublic(): Boolean = getAuthenticatedUser().isCalendarPublic
 
+    fun checkIfUsernameExists(username: String): Boolean = userRepository.existsByUsernameField(username)
+
 }
 

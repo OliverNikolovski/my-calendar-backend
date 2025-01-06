@@ -15,4 +15,6 @@ internal interface UserRepository : JpaRepository<User, Long>, JpaSpecificationE
         username: String, name: String, lastName: String, pageable: Pageable
     ): List<User>
 
+    fun existsByUsernameField(usernameField: String): Boolean
+
 }

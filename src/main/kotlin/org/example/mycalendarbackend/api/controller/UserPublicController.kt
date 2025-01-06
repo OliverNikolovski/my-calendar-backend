@@ -8,20 +8,10 @@ import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
-@RequestMapping("/api/users")
-class UserController internal constructor(
+@RequestMapping("/api/public/users")
+class UsePublicController internal constructor(
     private val userService: UserService
 ){
-
-    @GetMapping("/search")
-    fun findFirstNMatches(@RequestParam n: Int, @RequestParam q: String): List<SelectOption> =
-        userService.findFirstNMatches(
-            searchTerm = q,
-            n = n
-        )
-
-    @GetMapping("/is-calendar-public")
-    fun isCalendarPublic(): Boolean = userService.isAuthenticatedUserCalendarPublic()
 
     @GetMapping("/username-exists")
     fun usernameExists(@RequestParam username: String): Boolean = userService.checkIfUsernameExists(username)
