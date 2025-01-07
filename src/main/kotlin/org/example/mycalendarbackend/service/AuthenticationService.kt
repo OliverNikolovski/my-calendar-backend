@@ -24,7 +24,7 @@ internal class AuthenticationService(
         val user = User(
             name = request.firstName,
             lastName = request.lastName,
-            usernameField = request.email,
+            usernameField = request.username,
             passwordField = request.password
         )
         val savedUser = userService.save(user)
