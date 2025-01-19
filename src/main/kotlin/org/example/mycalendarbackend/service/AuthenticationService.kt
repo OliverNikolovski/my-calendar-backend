@@ -10,6 +10,7 @@ import org.example.mycalendarbackend.domain.entity.User
 import org.springframework.http.HttpHeaders
 import org.springframework.security.authentication.AuthenticationManager
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
+import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
 
 
@@ -17,7 +18,8 @@ import org.springframework.stereotype.Service
 internal class AuthenticationService(
     private val authenticationManager: AuthenticationManager,
     private val userService: UserService,
-    private val jwtService: JwtService
+    private val jwtService: JwtService,
+    private val passwordEncoder: PasswordEncoder
 ) {
 
     fun register(request: RegisterRequest): AuthenticationResponse {
@@ -25,7 +27,7 @@ internal class AuthenticationService(
             name = request.firstName,
             lastName = request.lastName,
             usernameField = request.username,
-            passwordField = request.password
+            passwordField = passwordEncoder.encode(request.password)
         )
         val savedUser = userService.save(user)
         val jwtToken = jwtService.generateToken(user)
