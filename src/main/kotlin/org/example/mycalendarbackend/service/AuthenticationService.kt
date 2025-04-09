@@ -34,7 +34,8 @@ internal class AuthenticationService(
         val refreshToken = jwtService.generateRefreshToken(user)
         return AuthenticationResponse(
             accessToken = jwtToken,
-            refreshToken = refreshToken
+            refreshToken = refreshToken,
+            username = savedUser.username,
         )
     }
 
@@ -50,7 +51,8 @@ internal class AuthenticationService(
         val refreshToken = jwtService.generateRefreshToken(user)
         return AuthenticationResponse(
             accessToken = jwtToken,
-            refreshToken = refreshToken
+            refreshToken = refreshToken,
+            username = user.username
         )
     }
 
@@ -70,7 +72,8 @@ internal class AuthenticationService(
         val accessToken = jwtService.generateToken(user)
         val authResponse = AuthenticationResponse(
             accessToken = accessToken,
-            refreshToken = refreshToken
+            refreshToken = refreshToken,
+            username = user.username
         )
         ObjectMapper().writeValue(response.outputStream, authResponse)
     }
