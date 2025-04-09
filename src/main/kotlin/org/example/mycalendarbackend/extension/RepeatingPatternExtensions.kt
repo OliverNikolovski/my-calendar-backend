@@ -27,7 +27,7 @@ fun RepeatingPatternDto.toEntity(): RepeatingPattern = RepeatingPattern(
     occurrenceCount = occurrenceCount,
     rruleText = rruleText,
     rruleString = rruleString,
-    until = ZonedDateTime.parse(endDate, DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssXXX"))
+    until = endDate?.let { ZonedDateTime.parse(it, DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssXXX")) }
 ).also { it.id = id }
 
 fun RepeatingPattern.toRRuleRequest(startDate: ZonedDateTime): RRuleRequest = RRuleRequest(
